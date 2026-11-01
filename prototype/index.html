@@ -2021,7 +2021,8 @@ function drawTownMap(M, plain) {
   const W = 1000, cv = document.createElement('canvas'); cv.width = cv.height = plain ? 2048 : W;
   const g = cv.getContext('2d'), P = TOWN_PAL[M.pal], rnd = seeded(M.seed);
   M.blocks = []; if (plain) { M.canvas3d = cv; g.scale(2.048, 2.048); townRec = M.rec = { houses: [], trees: [] }; } else { M.canvas = cv; townRec = null; }
-  g.fillStyle = P.road; g.fillRect(0, 0, W, W);
+  const ASP = plain && M.pal !== 'under' ? '#4e4d55' : P.road;
+  g.fillStyle = ASP; g.fillRect(0, 0, W, W);
   // 町のブロック（道の間）
   const lines = (s) => { const a = [0]; let v = 0; while (v < W) { v += 95 + s() * 75; a.push(Math.min(W, v)); } return a; };
   const xs = lines(rnd), ys = lines(rnd), R = 13;
@@ -2031,10 +2032,26 @@ function drawTownMap(M, plain) {
     if (w < 20 || h < 20) continue;
     const kind = M.zone((x0 + w / 2) / W, (y0 + h / 2) / W);
     M.blocks.push({ x: x0, y: y0, w, h, kind });
+    if (plain && !['water', 'forest', 'rock', 'none'].includes(kind) && M.pal !== 'under') {
+      // 歩道と縁石
+      g.fillStyle = '#a9a59d'; rr(x0 - 8, y0 - 8, w + 16, h + 16, 16); g.fill();
+      g.strokeStyle = '#d8d4cc'; g.lineWidth = 2; g.stroke();
+      g.strokeStyle = 'rgba(0,0,0,.12)'; g.lineWidth = 1; for (let k = x0; k < x0 + w; k += 8) { g.beginPath(); g.moveTo(k, y0 - 8); g.lineTo(k, y0 - 1); g.moveTo(k, y0 + h + 1); g.lineTo(k, y0 + h + 8); g.stroke(); }
+    }
     drawBlock(g, P, kind, x0, y0, w, h, rnd, rr);
   }
+  // 道路標示：センターラインの点線・横断歩道・止まれの線
+  if (plain && M.pal !== 'under') {
+    g.fillStyle = 'rgba(255,255,255,.85)';
+    for (let i = 1; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) for (let y = ys[j] + 24; y < ys[j + 1] - 24; y += 14) g.fillRect(xs[i] - 1, y, 2, 7);
+    for (let j = 1; j < ys.length - 1; j++) for (let i = 0; i < xs.length - 1; i++) for (let x = xs[i] + 24; x < xs[i + 1] - 24; x += 14) g.fillRect(x, ys[j] - 1, 7, 2);
+    for (let i = 1; i < xs.length - 1; i++) for (let j = 1; j < ys.length - 1; j++) {
+      const X = xs[i], Y = ys[j];
+      for (let k = -10; k <= 8; k += 4.5) { g.fillRect(X + k, Y - 22, 2.6, 8); g.fillRect(X + k, Y + 14, 2.6, 8); g.fillRect(X - 22, Y + k, 8, 2.6); g.fillRect(X + 14, Y + k, 8, 2.6); }
+    }
+  }
   // 大通り（ななめ）
-  if (M.id === 2) { g.strokeStyle = P.road; g.lineWidth = 40; g.beginPath(); g.moveTo(180, 230); g.lineTo(980, 1000); g.stroke(); }
+  if (M.id === 2) { g.strokeStyle = ASP; g.lineWidth = 40; g.beginPath(); g.moveTo(180, 230); g.lineTo(980, 1000); g.stroke(); }
   // 海（道ごとおおう）
   if (M.sea) { const [a, b, c, d] = M.sea; g.fillStyle = P.waterDark; g.fillRect(a * W - 8, b * W, (c - a) * W + 8, (d - b) * W); g.fillStyle = P.water; g.fillRect(a * W, b * W, (c - a) * W, (d - b) * W);
     g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 3; for (let k = 0; k < 60; k++) { const cx = (a + rnd() * (c - a)) * W, cy = (b + rnd() * (d - b)) * W; g.beginPath(); g.arc(cx, cy, 12, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } }
@@ -2075,7 +2092,7 @@ function drawBlock(g, P, kind, x, y, w, h, rnd, rr) {
     if (kind === 'rock') for (let k = 0; k < 3; k++) { g.fillStyle = P.tree; g.globalAlpha = 0.7; g.beginPath(); g.arc(x + rnd() * w, y + rnd() * h, 4, 0, 7); g.fill(); g.globalAlpha = 1; }
     return;
   }
-  g.fillStyle = kind === 'park' ? P.park : kind === 'water' ? P.water : kind === 'dump' ? '#9a8058' : kind === 'palace' ? '#5a3a6a' : P.block;
+  g.fillStyle = townRec && (kind === 'houses') && P !== TOWN_PAL.under ? '#8a9a6a' : townRec && (kind === 'shops' || kind === 'market') ? '#a8a294' : kind === 'park' ? P.park : kind === 'water' ? P.water : kind === 'dump' ? '#9a8058' : kind === 'palace' ? '#5a3a6a' : P.block;
   rr(x, y, w, h, 12); g.fill();
   g.strokeStyle = P.edge; g.lineWidth = 3; g.stroke();
   if (kind === 'water') { g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3; for (let k = 0; k < w * h / 2500; k++) { const cx = x + rnd() * w, cy = y + rnd() * h; g.beginPath(); g.arc(cx, cy, 10, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } return; }
@@ -2087,14 +2104,19 @@ function drawBlock(g, P, kind, x, y, w, h, rnd, rr) {
   const s = kind === 'shops' || kind === 'market' ? 30 : 34;
   for (let yy = y + 7; yy + s <= y + h - 4; yy += s + 6) for (let xx = x + 7; xx + s <= x + w - 4; xx += s + 6) {
     if (kind === 'houses' && rnd() < 0.12) { tree(xx + s / 2, yy + s / 2, 9, P.tree, '#3f8a46'); continue; }
+    if (townRec) { // 3D用の地面：敷地（コンクリートの駐車スペースと小さな庭）
+      const c = P.roofs[Math.floor(rnd() * P.roofs.length)];
+      townRec.houses.push({ x: xx, y: yy, s, c, shop: kind === 'shops' || kind === 'market' });
+      g.fillStyle = '#b4aea2'; g.fillRect(xx - 3, yy - 3, s + 6, s + 6);
+      g.fillStyle = '#7c9a5a'; g.fillRect(xx + 2, yy + 2, s * 0.35, s - 4);
+      continue;
+    }
     g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(xx + 3, yy + 4, s, s);
     if (kind === 'shops' || kind === 'market') {
       const c = P.roofs[Math.floor(rnd() * P.roofs.length)];
-      if (townRec) townRec.houses.push({ x: xx, y: yy, s, c, shop: true });
       for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#fff6e0' : c; g.fillRect(xx + k * s / 4, yy, s / 4, s); }
     } else {
       g.fillStyle = P.roofs[Math.floor(rnd() * P.roofs.length)]; g.fillRect(xx, yy, s, s);
-      if (townRec) townRec.houses.push({ x: xx, y: yy, s, c: g.fillStyle });
       g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(xx + s / 2, yy, s / 2, s);
     }
   }
@@ -2740,6 +2762,7 @@ function buildAlley() {
       }
     }
   }
+  for (let i = 0; i < 1; i++) addPoles(R, path.slice(0, D.tunnelFrom + 1), FLOOR.ALLEY, 1);
   // 下水道の入口：アーチ形の穴があいた1枚のレンガ壁＋その奥の暗闇
   const tz = D.tunnelZ;
   archWall(R, { x: 0, z: tz, w: 36, h: 5.5, ow: path[D.tunnelFrom].w + 0.3, oh: 4.0, depth: 1.6, color: '#6b4f42', trim: '#8a6a58' });
@@ -2964,6 +2987,7 @@ function buildGen(key) {
       }
     }
   }
+  if (!T.water && ['street', 'market', 'park', 'warehouse', 'station', 'dump'].includes(D.theme)) addPoles(R, D.tunnelFrom ? path.slice(0, D.tunnelFrom + 1) : path, top, -1);
   // 入口（通ってきた暗いトンネル。低い壁でカメラの視界をふさがない）
   archWall(R, { x: 0, z: path[0].z + 2.4, w: 30, h: 2.6, ow: path[0].w + 0.3, oh: 2.45, depth: 1.4, color: T.wall, trim: T.trim, facing: -1 });
   if (M) {
@@ -4275,6 +4299,89 @@ function setEnv(k) {
   renderer.setClearColor(e.bg, 1);
   if (S.lamp) S.lamp.intensity = (k === 'sewer' || e.lamp) ? 0.9 : 0;
 }
+/* ---------- 町の建物の模様（窓・ドア・シャッター・ブロック塀・自販機） ---------- */
+function houseTex(floors, apt) {
+  return canvasTex(128, 128, (g, w, h) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    // 外壁のサイディングの横線
+    g.strokeStyle = 'rgba(0,0,0,.07)'; g.lineWidth = 1;
+    for (let y = 4; y < h; y += 6) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+    const rows = floors, rh = h / rows;
+    for (let r = 0; r < rows; r++) {
+      const y0 = r * rh;
+      if (apt) {
+        // アパート：ベランダの手すりと窓
+        for (let c = 0; c < 3; c++) {
+          const x0 = 6 + c * 40;
+          g.fillStyle = (r + c) % 3 ? '#ffe2a0' : '#3a4250'; g.fillRect(x0 + 4, y0 + 6, 28, rh * 0.55);
+          g.fillStyle = '#8a8a90'; g.fillRect(x0, y0 + rh * 0.58, 36, rh * 0.3);
+          g.strokeStyle = '#5a5a60'; g.lineWidth = 1; for (let k = 0; k < 8; k++) { g.beginPath(); g.moveTo(x0 + 2 + k * 4.5, y0 + rh * 0.58); g.lineTo(x0 + 2 + k * 4.5, y0 + rh * 0.88); g.stroke(); }
+        }
+        continue;
+      }
+      const ground = r === rows - 1;
+      // 窓（夜なので明かりのついた窓とついていない窓）
+      const win = (x, y, ww, hh, lit) => { g.fillStyle = '#e8e4dc'; g.fillRect(x - 2, y - 2, ww + 4, hh + 4); g.fillStyle = lit ? '#ffd88a' : '#3a4656'; g.fillRect(x, y, ww, hh);
+        g.strokeStyle = '#d8d4cc'; g.lineWidth = 2; g.beginPath(); g.moveTo(x + ww / 2, y); g.lineTo(x + ww / 2, y + hh); g.stroke(); };
+      if (ground) {
+        win(12, y0 + rh * 0.22, 34, rh * 0.42, (r + floors) % 2 === 0);
+        // 玄関ドアとひさし
+        g.fillStyle = '#6a4a34'; g.fillRect(76, y0 + rh * 0.32, 26, rh * 0.68);
+        g.fillStyle = '#c9a35a'; g.fillRect(96, y0 + rh * 0.62, 3, 4);
+        g.fillStyle = '#8a8680'; g.fillRect(70, y0 + rh * 0.25, 38, 5);
+      } else {
+        win(14, y0 + rh * 0.25, 30, rh * 0.45, r % 2 === 1);
+        win(80, y0 + rh * 0.25, 30, rh * 0.45, r % 2 === 0);
+      }
+    }
+  });
+}
+function shopTex() {
+  return canvasTex(128, 128, (g, w, h) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#2a2a34'; g.fillRect(0, 10, w, 22); // 看板
+    g.fillStyle = '#ffd36b'; g.font = 'bold 15px sans-serif'; g.textAlign = 'center'; g.fillText('ネコ商店', w / 2, 27);
+    g.fillStyle = '#ffe8b0'; g.fillRect(8, 48, w - 16, 70); // 明るい店内
+    g.fillStyle = '#c9a35a'; for (let k = 0; k < 4; k++) g.fillRect(14 + k * 28, 70, 20, 30);
+    g.strokeStyle = '#8a8680'; g.lineWidth = 3; g.strokeRect(8, 48, w - 16, 70); g.beginPath(); g.moveTo(w / 2, 48); g.lineTo(w / 2, 118); g.stroke();
+  });
+}
+function blockWallTex() {
+  return canvasTex(128, 32, (g, w, h) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 1.5;
+    for (let r = 0; r < 4; r++) { g.beginPath(); g.moveTo(0, r * 8); g.lineTo(w, r * 8); g.stroke(); for (let c = 0; c < 8; c++) { const x = c * 16 + (r % 2) * 8; g.beginPath(); g.moveTo(x, r * 8); g.lineTo(x, r * 8 + 8); g.stroke(); } }
+    g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(0, 0, w, 3);
+  });
+}
+function vendTex() {
+  return canvasTex(64, 128, (g, w, h) => {
+    g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+    g.fillStyle = '#f2f6ff'; g.fillRect(6, 10, 52, 54);
+    const cols = ['#d9553b', '#3f7fd0', '#e8c45a', '#6fbf73', '#8a5a34', '#ff8fc8'];
+    for (let r = 0; r < 3; r++) for (let c = 0; c < 6; c++) { g.fillStyle = cols[(r * 2 + c) % 6]; g.fillRect(9 + c * 8, 14 + r * 17, 6, 12); }
+    g.fillStyle = '#2a2a34'; g.fillRect(8, 96, 48, 14); g.fillStyle = '#5a5a64'; g.fillRect(40, 72, 14, 18);
+  });
+}
+// ステージ用：道ぞいの電柱と電線
+function addPoles(R, path, top, side) {
+  const pts = [];
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1], L = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / L, dz = (b.z - a.z) / L;
+    for (let t = 3; t < L - 2; t += 10) {
+      const off = a.w / 2 - 0.35, x = a.x + dx * t + dz * side * off, z = a.z + dz * t - dx * side * off;
+      if (pathDistAll([path], null, x, z) > -0.2) continue;
+      pts.push([x, z]);
+      part(R, cyl(0.09, 0.12, 6.4, 8), '#9a9890', x, top + 3.2, z, { ol: 0.01 });
+      part(R, box(1.2, 0.08, 0.08), '#5a5650', x, top + 5.9, z, { ry: Math.atan2(dx, dz) + Math.PI / 2, ol: 0 });
+      part(R, new THREE.SphereGeometry(0.15, 10, 8), basic('#ffe8a8'), x - dz * side * 0.7, top + 3.9, z + dx * side * 0.7, { ol: 0, shadow: false });
+    }
+  }
+  const wv = [];
+  for (let i = 0; i < pts.length - 1; i++) { const [x1, z1] = pts[i], [x2, z2] = pts[i + 1]; if (Math.hypot(x2 - x1, z2 - z1) > 14) continue; for (const o of [-0.45, 0, 0.45]) wv.push(x1 + o, top + 5.9, z1, x2 + o, top + 5.9 - 0.0, z2); }
+  if (wv.length) { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wv, 3)); R.add(new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color: '#1d1a20' }))); }
+}
+
 /* ---------- 町マップを歩く（出撃するとまず町に出て、📍まで歩く） ---------- */
 const TOWN_SZ = 150, TPX = TOWN_SZ / 1000;
 const TOWN_START = { 1: [0.4, 0.42], 2: [0.12, 0.42], 3: [0.36, 0.46], 4: [0.5, 0.55] };
@@ -4347,23 +4454,108 @@ function buildTown(key) {
     const side = toon(TOWN_SIDE[b.kind]);
     part(R, geo, [side, side, topM, side, side, side], cx, 0.1 + h / 2, cz, { receive: true, ol: tall[b.kind] ? 0.03 : 0.015 });
   }
-  const rnd = seeded(M.seed + 5), col = new THREE.Color(), mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps3 = new THREE.Vector3();
-  const HS = M.rec.houses, TR = M.rec.trees;
-  const wallM = toon(0xffffff, {}), roofM = toon(0xffffff, {}); // インスタンスごとの色を使うので共有しない
-  const walls = new THREE.InstancedMesh(box(1, 1, 1), wallM, HS.length);
-  const roofs = new THREE.InstancedMesh(new THREE.ConeGeometry(0.72, 1, 4), roofM, HS.length);
-  const wallCols = M.pal === 'under' ? ['#5a4a6a', '#4a3e5a'] : ['#f2e6cc', '#e8dcc0', '#f6ecd8', '#dccfb4'];
-  const qr = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4);
-  HS.forEach((hs, i) => {
-    const [x, z] = toWorld(hs.x + hs.s / 2, hs.y + hs.s / 2), w = hs.s * TPX * 0.86, h = hs.shop ? 0.9 + rnd() * 0.3 : 0.9 + rnd() * 0.7;
-    mtx.compose(ps3.set(x, 0.45 + h / 2, z), q.identity(), sc.set(w, h, w)); walls.setMatrixAt(i, mtx);
-    walls.setColorAt(i, col.set(wallCols[i % wallCols.length]));
-    const rh = hs.shop ? 0.22 : 1.0 + rnd() * 0.5;
-    mtx.compose(ps3.set(x, 0.45 + h + rh / 2, z), qr, sc.set(w * 1.05, rh, w * 1.05)); roofs.setMatrixAt(i, mtx);
-    roofs.setColorAt(i, col.set(hs.c));
+  // ---- 家・アパート・お店（敷地ごと。玄関は近い道のほうを向く）----
+  const rnd = seeded(M.seed + 5), col = new THREE.Color(), mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
+  const under = M.pal === 'under';
+  const lots = M.rec.houses.map((hs) => {
+    const cxp = hs.x + hs.s / 2, cyp = hs.y + hs.s / 2;
+    const b = M.blocks.find((bk) => cxp > bk.x && cxp < bk.x + bk.w && cyp > bk.y && cyp < bk.y + bk.h);
+    let yaw = 0;
+    if (b) { const d = [cxp - b.x, b.x + b.w - cxp, cyp - b.y, b.y + b.h - cyp], m = Math.min(...d); yaw = [-Math.PI / 2, Math.PI / 2, Math.PI, 0][d.indexOf(m)]; }
+    const r = rnd();
+    const type = hs.shop ? 'shop' : under ? (r < 0.5 ? 'h1' : 'h2') : r < 0.12 ? 'apt' : r < 0.32 ? 'h1' : 'h2';
+    const [x, z] = toWorld(cxp, cyp);
+    return { x, z, s: hs.s * TPX, yaw, type, c: hs.c, r2: rnd(), r3: rnd() };
   });
-  walls.castShadow = roofs.castShadow = true; walls.receiveShadow = true;
-  R.add(walls); R.add(roofs);
+  const TEX = {
+    h2: houseTex(2, false), h1: houseTex(1, false), apt: houseTex(3, true), shop: shopTex()
+  };
+  const WALLC = under ? ['#5a4a6a', '#4a3e5a', '#6a5a7a'] : ['#f2ece0', '#e6dccb', '#d8cdb8', '#efe4d0', '#c9c2b6', '#e8e0d4', '#b8a890'];
+  const ROOFC = under ? ['#2a2236', '#3a2e4a'] : ['#4a5260', '#3a3f48', '#6a4038', '#3e5a4a', '#5a5048', '#2e3038', '#7a3a30'];
+  const groups = {};
+  for (const L of lots) (groups[L.type] = groups[L.type] || []).push(L);
+  const prism = (() => { const sh = new THREE.Shape(); sh.moveTo(-0.5, 0); sh.lineTo(0.5, 0); sh.lineTo(0, 1); sh.closePath();
+    const g = new THREE.ExtrudeGeometry(sh, { depth: 1, bevelEnabled: false }); g.translate(0, 0, -0.5); return g; })();
+  const inst = (geo, mat, n) => { const m = new THREE.InstancedMesh(geo, mat, n); m.castShadow = true; m.receiveShadow = true; R.add(m); return m; };
+  for (const type in groups) {
+    const list = groups[type], n = list.length;
+    const walls = inst(box(1, 1, 1), toon(0xffffff, { map: TEX[type] }), n);
+    const roofs = type === 'apt' || type === 'shop' ? inst(box(1, 1, 1), toon(0xffffff, {}), n) : inst(prism, toon(0xffffff, {}), n);
+    const awn = type === 'shop' ? inst(box(1, 1, 1), toon(0xffffff, {}), n) : null;
+    list.forEach((L, i) => {
+      const w = L.s * (type === 'apt' ? 0.92 : 0.72), d = L.s * (type === 'apt' ? 0.8 : 0.66);
+      const h = type === 'apt' ? 4.2 + L.r2 * 1.6 : type === 'h2' ? 2.6 + L.r2 * 0.4 : type === 'h1' ? 1.4 : 1.6 + L.r2 * 0.6;
+      const back = type === 'shop' ? 0 : L.s * 0.08; // 道から少し下がって建てる
+      q.setFromAxisAngle(up, L.yaw);
+      const fx = Math.sin(L.yaw), fz = Math.cos(L.yaw), bx = L.x - fx * back, bz = L.z - fz * back;
+      mtx.compose(ps3.set(bx, 0.45 + h / 2, bz), q, sc.set(w, h, d)); walls.setMatrixAt(i, mtx);
+      walls.setColorAt(i, col.set(type === 'shop' ? '#efe8dc' : WALLC[Math.floor(L.r3 * WALLC.length)]));
+      if (type === 'apt' || type === 'shop') {
+        mtx.compose(ps3.set(bx, 0.45 + h + 0.08, bz), q, sc.set(w + 0.12, 0.16, d + 0.12)); roofs.setMatrixAt(i, mtx);
+        roofs.setColorAt(i, col.set(type === 'shop' ? '#6a6460' : '#8a8680'));
+      } else {
+        // 切妻屋根：棟は横（幅方向）。軒を少し出す
+        mtx.compose(ps3.set(bx, 0.45 + h, bz), q, sc.set(d + 0.5, 0.9 + L.r2 * 0.4, w + 0.35));
+        const qq = q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(up, Math.PI / 2));
+        mtx.compose(ps3.set(bx, 0.45 + h, bz), qq, sc.set(d + 0.5, 0.9 + L.r2 * 0.4, w + 0.35)); roofs.setMatrixAt(i, mtx);
+        roofs.setColorAt(i, col.set(ROOFC[Math.floor(L.r2 * ROOFC.length)]));
+      }
+      if (awn) {
+        mtx.compose(ps3.set(bx + fx * (d / 2 + 0.35), 0.45 + h * 0.62, bz + fz * (d / 2 + 0.35)), q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.35)), sc.set(w * 0.95, 0.08, 0.8));
+        awn.setMatrixAt(i, mtx); awn.setColorAt(i, col.set(L.c));
+      }
+    });
+  }
+  // ブロック塀（家の前。玄関の前はあける）
+  const hl = lots.filter((L) => L.type === 'h1' || L.type === 'h2');
+  const fence = inst(box(1, 1, 1), toon(0xffffff, { map: blockWallTex() }), hl.length * 2);
+  hl.forEach((L, i) => {
+    q.setFromAxisAngle(up, L.yaw);
+    const fx = Math.sin(L.yaw), fz = Math.cos(L.yaw), rx = Math.cos(L.yaw), rz = -Math.sin(L.yaw);
+    const fd = L.s * 0.44, len = L.s * 0.34;
+    for (const sgn of [-1, 1]) {
+      mtx.compose(ps3.set(L.x + fx * fd + rx * sgn * L.s * 0.29, 0.45 + 0.35, L.z + fz * fd + rz * sgn * L.s * 0.29), q, sc.set(len, 0.7, 0.14));
+      fence.setMatrixAt(i * 2 + (sgn > 0 ? 1 : 0), mtx);
+      fence.setColorAt(i * 2 + (sgn > 0 ? 1 : 0), col.set(under ? '#4a4252' : '#c8c4bc'));
+    }
+  });
+  // 電柱と電線、街灯、自動販売機
+  if (!under) {
+    const poles = [];
+    for (const b of M.blocks) {
+      if (!['houses', 'shops', 'market', 'warehouse', 'park'].includes(b.kind)) continue;
+      const step = 75;
+      for (let t = 20; t < b.w - 10; t += step) poles.push([b.x + t, b.y + b.h + 7, 'h']);
+      for (let t = 20; t < b.h - 10; t += step) poles.push([b.x + b.w + 7, b.y + t, 'v']);
+    }
+    const okPole = (p) => townWalkPx(M, p[0], p[1], 1);
+    const PL = poles.filter(okPole);
+    const poleG = cyl(0.09, 0.12, 1, 8);
+    const pm = inst(poleG, toon('#9a9890'), PL.length);
+    const arm = inst(box(1, 1, 1), toon('#5a5650'), PL.length);
+    const lamp = new THREE.InstancedMesh(new THREE.SphereGeometry(0.16, 10, 8), new THREE.MeshBasicMaterial({ color: '#ffe8a8' }), PL.length); R.add(lamp);
+    const wire = [];
+    PL.forEach((p, i) => {
+      const [x, z] = toWorld(p[0], p[1]);
+      mtx.compose(ps3.set(x, 0.1 + 3.4, z), q.identity(), sc.set(1, 6.8, 1)); pm.setMatrixAt(i, mtx);
+      q.setFromAxisAngle(up, p[2] === 'h' ? 0 : Math.PI / 2);
+      mtx.compose(ps3.set(x, 6.3, z), q, sc.set(1.2, 0.08, 0.08)); arm.setMatrixAt(i, mtx);
+      const off = p[2] === 'h' ? [0, -0.9] : [-0.9, 0];
+      mtx.compose(ps3.set(x + off[0], 4.1, z + off[1]), q.identity(), sc.set(1, 1, 1)); lamp.setMatrixAt(i, mtx);
+      const n = PL[i + 1];
+      if (n && n[2] === p[2] && Math.hypot(n[0] - p[0], n[1] - p[1]) < 120) {
+        const [x2, z2] = toWorld(n[0], n[1]);
+        for (const o of [-0.5, 0, 0.5]) { const a = p[2] === 'h' ? [o, 0] : [0, o]; wire.push(x + a[0], 6.3, z + a[1], x2 + a[0], 6.3, z2 + a[1]); }
+      }
+    });
+    if (wire.length) { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wire, 3)); R.add(new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color: '#1d1a20' }))); }
+    // 自動販売機（道の角のあたり）
+    const vm = [];
+    for (const b of M.blocks) if ((b.kind === 'houses' || b.kind === 'shops') && rnd() < 0.35) vm.push([b.x + 4, b.y + b.h - 4, Math.PI]);
+    const vmM = inst(box(1, 1, 1), toon(0xffffff, { map: vendTex(), emissive: new THREE.Color('#2a2a3a') }), vm.length);
+    vm.forEach((v, i) => { const [x, z] = toWorld(v[0], v[1]); q.setFromAxisAngle(up, 0); mtx.compose(ps3.set(x, 0.45 + 0.9, z + 0.3), q, sc.set(0.9, 1.8, 0.7)); vmM.setMatrixAt(i, mtx); vmM.setColorAt(i, col.set(['#e8e8f0', '#d9553b', '#3f7fd0'][i % 3])); });
+  }
+  const TR = M.rec.trees;
   const crowns = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), toon(0xffffff, {}), TR.length);
   const trunks = new THREE.InstancedMesh(cyl(0.12, 0.16, 1, 6), toon('#5a3f2a'), TR.length);
   TR.forEach((t, i) => {
