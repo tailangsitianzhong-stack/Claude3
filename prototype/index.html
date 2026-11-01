@@ -176,6 +176,69 @@ button:focus-visible { outline: 3px solid var(--fish); outline-offset: 2px; }
   .cards { gap: 6px; }
 }
 
+#joyTag {
+  position: absolute; left: 50%; top: -24px; transform: translateX(-50%); font-family: var(--display); font-size: 13px;
+  color: var(--ember); text-shadow: 0 2px 0 var(--line); opacity: 0; transition: opacity .15s; pointer-events: none; white-space: nowrap;
+}
+#joy.run #joyTag { opacity: 1; }
+#joy.run #joyKnob { background: var(--ember); }
+#joy.run #joyBase { border-color: var(--ember); box-shadow: 0 0 0 5px rgba(255,106,77,.25); }
+#hint kbd {
+  font-family: var(--body); font-weight: 800; font-size: 11px; color: var(--ink); background: var(--panel-2);
+  border: 2px solid var(--line); border-radius: 6px; padding: 0 5px; margin-right: 3px;
+}
+#rotate { position: absolute; inset: 0; z-index: 4; display: none; place-items: center; padding: 16px; background: rgba(13,10,26,.82); }
+.rotbox { max-width: 300px; padding: 22px 20px 18px; text-align: center; display: grid; justify-items: center; gap: 8px; }
+.rotbox b { font-family: var(--display); font-weight: 400; font-size: 19px; color: var(--lantern); text-wrap: balance; }
+.rotbox p { margin: 0 0 6px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+@media (orientation: portrait) and (pointer: coarse) { body:not(.rot-ok) #rotate { display: grid; } }
+
+/* ---------- PC（大きめの画面） ---------- */
+@media (pointer: fine) and (min-height: 700px) {
+  .portrait { width: 64px; height: 64px; }
+  .pname { font-size: 20px; }
+  .hp { width: 160px; }
+  #minimap { width: 148px; height: 148px; }
+}
+
+/* ---------- スマホ横向き ---------- */
+@media (orientation: landscape) and (max-height: 520px) {
+  .hud-top { padding-top: calc(8px + env(safe-area-inset-top, 0px)); padding-left: max(10px, env(safe-area-inset-left, 0px)); padding-right: max(10px, env(safe-area-inset-right, 0px)); }
+  .pcard { padding: 5px 10px 5px 5px; gap: 8px; border-radius: 12px; }
+  .portrait { width: 42px; height: 42px; border-width: 2px; }
+  .pname { font-size: 15px; }
+  .pname .lv { font-size: 12px; }
+  .hp { width: 92px; height: 8px; margin-top: 4px; }
+  .fishline { font-size: 12px; margin-top: 3px; }
+  .tr { flex-direction: row; align-items: flex-start; gap: 6px; }
+  #minimap { width: 80px; height: 80px; padding: 2px; border-radius: 12px; }
+  #btnView { font-size: 12px; padding: 6px 10px; border-radius: 10px; }
+  #banner { top: calc(8px + env(safe-area-inset-top, 0px)); padding: 6px 14px; max-width: 36vw; }
+  #banner small { font-size: 9px; }
+  #banner strong { font-size: 18px; }
+  #banner span { font-size: 11px; }
+  #joy { width: 116px; height: 116px; left: max(22px, calc(env(safe-area-inset-left, 0px) + 8px)); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  #joyKnob { width: 50px; height: 50px; margin: -25px 0 0 -25px; }
+  #btnAct { min-width: 80px; height: 80px; border-radius: 40px; padding: 0 12px; font-size: 13px; right: max(22px, calc(env(safe-area-inset-right, 0px) + 8px)); bottom: calc(18px + env(safe-area-inset-bottom, 0px)); }
+  #toast { bottom: calc(16px + env(safe-area-inset-bottom, 0px)); padding: 6px 14px; }
+  #panel { padding: 8px max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px)); }
+  .sheet { width: min(660px, 100%); max-height: 100%; border-top-width: 6px; }
+  .sheet > header { padding: 10px 14px 6px; }
+  .sheet h2 { font-size: 19px; }
+  #pBody { padding: 2px 14px 12px; }
+  .lead { margin-bottom: 8px; line-height: 1.6; font-size: 13px; }
+  .row { padding: 7px 10px; }
+  .statgrid { grid-template-columns: repeat(4, minmax(0, 1fr)); margin: 8px 0; }
+  .lvhead .big { font-size: 28px; }
+  .cards { grid-template-columns: repeat(3, minmax(0, 120px)); }
+  #viewer { top: calc(10px + env(safe-area-inset-top, 0px)); bottom: auto; left: max(12px, env(safe-area-inset-left, 0px)); width: min(270px, 40vw); padding: 10px 12px; max-height: calc(100% - 84px); overflow-y: auto; }
+  #viewer h1 { font-size: 24px; }
+  #viewer ul { display: none; }
+  #viewer p { font-size: 12px; margin: 6px 0 0; line-height: 1.6; }
+  #vhint { display: none; }
+  #vctrl { flex-wrap: nowrap; overflow-x: auto; width: auto; max-width: calc(100% - 24px); padding: 6px; gap: 5px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); }
+  #vctrl .btn { padding: 6px 10px; font-size: 12px; white-space: nowrap; flex: none; }
+}
 #loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--night); z-index: 5; transition: opacity .4s; }
 #loading.done { opacity: 0; pointer-events: none; }
 #loading p { font-family: var(--display); font-size: 20px; color: var(--lantern); }
@@ -205,9 +268,9 @@ button:focus-visible { outline: 3px solid var(--fish); outline-offset: 2px; }
         <button id="btnView" class="btn">ノネコを見る</button>
       </div>
     </header>
-    <div id="joy" aria-hidden="true"><div id="joyBase"></div><div id="joyKnob"></div></div>
+    <div id="joy" aria-hidden="true"><div id="joyBase"></div><div id="joyKnob"></div><span id="joyTag">ダッシュ</span></div>
     <button id="btnAct" class="btn" disabled>調べる</button>
-    <p id="hint">WASD・矢印キーで移動　E・スペースで部屋を開く</p>
+    <p id="hint"><kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 押しながらで走る　<kbd>E</kbd> 部屋を開く　<kbd>Esc</kbd> 閉じる</p>
   </div>
 
   <div id="banner" class="chunky" aria-live="polite"><small>ROOM</small><strong></strong><span></span></div>
@@ -241,6 +304,7 @@ button:focus-visible { outline: 3px solid var(--fish); outline-offset: 2px; }
     <div id="vctrl" class="chunky">
       <button class="btn ghost" data-pose="idle" aria-pressed="true">待機</button>
       <button class="btn ghost" data-pose="walk" aria-pressed="false">歩く</button>
+      <button class="btn ghost" data-pose="run" aria-pressed="false">走る</button>
       <button class="btn ghost" data-pose="wave" aria-pressed="false">手を振る</button>
       <button class="btn ghost" data-pose="attack" aria-pressed="false">ひっかく</button>
       <button class="btn ghost" id="vSpin" aria-pressed="false">自動回転</button>
@@ -248,6 +312,12 @@ button:focus-visible { outline: 3px solid var(--fish); outline-offset: 2px; }
     </div>
   </section>
 
+  <div id="rotate"><div class="chunky rotbox">
+    <svg viewBox="0 0 64 64" width="56" height="56" aria-hidden="true"><rect x="20" y="8" width="24" height="44" rx="5" fill="none" stroke="#ffb547" stroke-width="4"/><path d="M50 40a18 18 0 0 1-12 14" fill="none" stroke="#8fd3ec" stroke-width="4" stroke-linecap="round"/><path d="M36 50l3 5 5-3" fill="none" stroke="#8fd3ec" stroke-width="4" stroke-linecap="round"/></svg>
+    <b>スマホを横向きにしてください</b>
+    <p>この試作は横向き画面とPC画面に合わせて作っています。</p>
+    <button class="btn ghost" id="rotOk">縦のまま遊ぶ</button>
+  </div></div>
   <div id="loading"><p id="loadMsg">基地を準備中…</p></div>
 </div>
 
@@ -286,6 +356,8 @@ scene.background = new THREE.Color(SKY);
 scene.fog = new THREE.Fog(SKY, 30, 62);
 const camera = new THREE.PerspectiveCamera(38, 1, 0.1, 200);
 
+const compactMQ = window.matchMedia('(orientation: landscape) and (max-height: 520px)');
+const isCompact = () => compactMQ.matches;
 function resize() {
   const w = stageEl.clientWidth || window.innerWidth, h = stageEl.clientHeight || window.innerHeight;
   renderer.setSize(w, h, false);
@@ -621,7 +693,10 @@ function buildCat(opt) {
   for (const s of [-1, 1]) {
     const hip = new THREE.Group(); hip.position.set(s * 0.14, 0.02, 0); hips.add(hip);
     part(hip, ellip(0.115, 0.16, 0.12), baseM, 0, -0.12, 0, { ol: OL });
-    part(hip, ellip(0.1, 0.07, 0.15), pawM, 0, -0.36, 0.05, { ol: OL });
+    const ankle = new THREE.Group(); ankle.position.set(0, -0.31, 0); hip.add(ankle);
+    part(ankle, ellip(0.1, 0.07, 0.15), pawM, 0, -0.05, 0.05, { ol: OL });
+    if (!dark) for (const [x, z] of [[-0.04, 0.15], [0, 0.17], [0.04, 0.15]]) part(ankle, new THREE.SphereGeometry(0.014, 8, 6), pinkM, x, -0.1, z, { ol: 0 });
+    hip.userData.ankle = ankle;
     C.legs.push(hip);
   }
   // しっぽ
@@ -659,29 +734,50 @@ function buildCat(opt) {
 function animateCat(C, dt, s) {
   C.t += dt;
   const t = C.t;
-  const walk = s.walk || 0;
-  const ph = t * 9.5;
+  const walk = s.walk || 0, run = s.run || 0;
+  const loco = Math.min(1, walk + run);
+  // 歩幅に合わせて足の周期を進める（走ると速く、大きく）
+  C.phase = (C.phase || 0) + dt * (10.5 + 6.5 * run) * Math.min(1, loco * 1.5);
+  const ph = C.phase, sn = Math.sin(ph);
   const breath = Math.sin(t * 2.2);
   C.torso.scale.set(1 + breath * 0.012, 1 + breath * 0.02, 1 + breath * 0.012);
-  C.body.position.y = Math.abs(Math.sin(ph)) * 0.07 * walk + breath * 0.006 * (1 - walk);
-  C.hips.rotation.x = 0.12 * walk;
-  C.hips.rotation.y = Math.sin(ph) * 0.08 * walk;
-  C.hips.rotation.z = 0;
-  C.head.rotation.set(-0.06 * walk, Math.sin(t * 0.6) * 0.18 * (1 - walk), Math.sin(t * 1.1) * 0.04);
-  C.legs[0].rotation.x = Math.sin(ph) * 0.75 * walk;
-  C.legs[1].rotation.x = -Math.sin(ph) * 0.75 * walk;
-  for (const a of C.arms) {
-    a.rotation.x = -Math.sin(ph) * 0.65 * walk * a.userData.side;
-    a.rotation.z = a.userData.side * (0.18 + breath * 0.02);
-    a.rotation.y = 0;
-  }
+  // 接地で沈み、足が交差するところで浮く。走りは跳ねる
+  C.body.position.y = (1 - Math.abs(sn)) * (0.035 * walk + 0.11 * run) + breath * 0.006 * (1 - loco);
+  const turn = THREE.MathUtils.clamp(s.turn || 0, -1, 1);
+  C.body.rotation.z = -turn * (0.06 + 0.16 * run);
+  C.body.rotation.x = 0;
+  C.hips.rotation.x = 0.1 * walk + 0.36 * run;
+  C.hips.rotation.y = sn * (0.13 * walk + 0.18 * run);
+  C.hips.rotation.z = -sn * 0.06 * walk;
+  C.head.rotation.set(
+    -0.07 * walk - 0.3 * run + (1 - Math.abs(sn)) * 0.05 * loco,
+    -C.hips.rotation.y * 0.8 + Math.sin(t * 0.6) * 0.18 * (1 - loco),
+    -C.hips.rotation.z * 0.8 + Math.sin(t * 1.1) * 0.04 * (1 - loco) + Math.sin(ph) * 0.03 * walk);
+  const legAmp = 0.55 * walk + 1.0 * run, lift = 0.05 * walk + 0.13 * run;
+  C.legs.forEach((L, i) => {
+    const p = i ? ph + Math.PI : ph, s1 = Math.sin(p), c1 = Math.cos(p);
+    L.rotation.x = -s1 * legAmp;
+    L.position.y = 0.02 + Math.max(0, c1) * lift;
+    const an = L.userData.ankle;
+    if (an) an.rotation.x = s1 * legAmp * 0.55 + (c1 > 0 ? -0.35 * c1 * loco : 0.45 * -c1 * run);
+  });
+  const armAmp = 0.6 * walk + 1.05 * run;
+  C.arms.forEach((A, i) => {
+    const p = i ? ph : ph + Math.PI;
+    A.rotation.x = -Math.sin(p) * armAmp - 0.4 * run;
+    A.rotation.z = A.userData.side * (0.18 + 0.28 * run + breath * 0.02 * (1 - loco));
+    A.rotation.y = 0;
+  });
   for (const segs of C.tails) segs.forEach((g, i) => {
-    g.rotation.x = g.userData.base.x + Math.sin(t * 1.7 - i * 0.4) * 0.05 + (i ? walk * 0.03 : -walk * 0.25);
-    g.rotation.z = g.userData.base.z + Math.sin(t * 2.4 - i * 0.55) * (0.1 + 0.12 * walk);
+    const bx = g.userData.base.x;
+    g.rotation.x = (i === 0 ? bx - 0.5 * run - 0.15 * walk : bx * (1 - 0.65 * run))
+      + Math.sin(t * 1.7 - i * 0.4) * 0.05 * (1 - loco) + Math.sin(ph * 2 - i * 0.7) * (0.04 * walk + 0.06 * run);
+    g.rotation.z = g.userData.base.z + Math.sin(t * 2.4 - i * 0.55) * 0.1 * (1 - loco)
+      + Math.sin(ph - i * 0.5) * (0.14 * walk + 0.07 * run) + turn * 0.06 * Math.min(i, 4);
   });
   for (const p of C.scarfTails) {
-    p.rotation.x = p.userData.base.x + Math.sin(t * 8 + p.position.x * 20) * 0.12 * (0.3 + walk) + walk * 0.35;
-    p.rotation.z = p.userData.base.z + Math.sin(t * 5) * 0.05;
+    p.rotation.x = p.userData.base.x + walk * 0.35 + run * 1.05 + Math.sin(t * (8 + 10 * run) + p.position.x * 20) * 0.12 * (0.3 + loco);
+    p.rotation.z = p.userData.base.z + Math.sin(t * 5) * 0.05 - turn * 0.3;
   }
   // まばたき
   let eyeY = 1;
@@ -696,7 +792,7 @@ function animateCat(C, dt, s) {
   C.ears.forEach((e, i) => {
     let k = 0;
     if (C.twitch.t >= 0 && C.twitch.side === i) k = Math.sin(Math.min(1, C.twitch.t / 0.25) * Math.PI) * 0.35;
-    e.rotation.x = e.userData.base.x - k;
+    e.rotation.x = e.userData.base.x - k - run * 0.45 - walk * 0.05;
     e.rotation.z = e.userData.base.z + (i ? -k : k) * 0.5;
   });
   if (C.twitch.t >= 0) { C.twitch.t += dt; if (C.twitch.t > 0.3) C.twitch.t = -1; }
@@ -1070,7 +1166,34 @@ function pushOut(p) {
 
 /* ================= シーン構築 ================= */
 let player;
-const ps = { x: 0, z: 2.6, yaw: 0, walk: 0, mode: 'idle', actionT: 0 };
+const ps = { x: 0, z: 2.6, yaw: 0, walk: 0, run: 0, turn: 0, mode: 'idle', actionT: 0 };
+const dust = [];
+let dustTimer = 0;
+const dustTex = canvasTex(64, 64, (g) => {
+  const gr = g.createRadialGradient(32, 32, 2, 32, 32, 30);
+  gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+  g.fillStyle = gr; g.fillRect(0, 0, 64, 64);
+});
+for (let k = 0; k < 16; k++) {
+  const sp = new THREE.Sprite(new THREE.SpriteMaterial({ map: dustTex, color: '#d9d0f2', transparent: true, depthWrite: false, opacity: 0 }));
+  sp.visible = false; sp.userData.life = 0; scene.add(sp); dust.push(sp);
+}
+function spawnDust(x, z) {
+  const sp = dust.find((d) => !d.visible) || dust[0];
+  sp.visible = true; sp.userData.life = 0; sp.position.set(x, 0.22, z);
+  sp.userData.vx = (Math.random() - 0.5) * 0.6; sp.userData.vz = (Math.random() - 0.5) * 0.6;
+}
+function updateDust(dt) {
+  for (const d of dust) {
+    if (!d.visible) continue;
+    d.userData.life += dt;
+    const k = d.userData.life / 0.5;
+    if (k >= 1) { d.visible = false; continue; }
+    d.position.x += d.userData.vx * dt; d.position.z += d.userData.vz * dt; d.position.y += dt * 0.5;
+    d.scale.setScalar(0.3 + k * 0.7);
+    d.material.opacity = 0.6 * (1 - k);
+  }
+}
 let trail;
 function buildAll() {
   buildHub();
@@ -1286,7 +1409,7 @@ $('#btnAct').addEventListener('click', () => { if (curRoom) openPanel(curRoom); 
 /* ================= キャラ閲覧モード ================= */
 const viewer = { on: false, yaw: 0, dist: 3.1, spin: false, pose: 'idle', drag: null, pinch: null, pts: new Map() };
 function openViewer() {
-  viewer.on = true; viewer.yaw = 0.35; viewer.dist = window.innerWidth < 640 ? 4.4 : 3.5; viewer.pose = 'idle';
+  viewer.on = true; viewer.yaw = 0.35; viewer.dist = isCompact() ? 3.7 : (window.innerWidth < 640 ? 4.4 : 3.5); viewer.pose = 'idle';
   setPose('idle');
   world.visible = false; showcase.visible = true; showcase.position.set(ps.x, 0, ps.z);
   $('#hud').hidden = true; $('#viewerWrap').hidden = false; $('#vignette').classList.add('on');
@@ -1300,10 +1423,11 @@ function closeViewer() {
 }
 function setPose(p) {
   viewer.pose = p;
-  ps.mode = p === 'walk' ? 'idle' : p; ps.actionT = 0;
+  ps.mode = (p === 'walk' || p === 'run') ? 'idle' : p; ps.actionT = 0;
   document.querySelectorAll('#vctrl [data-pose]').forEach((b) => b.setAttribute('aria-pressed', String(b.dataset.pose === p)));
 }
 $('#btnView').addEventListener('click', openViewer);
+$('#rotOk').addEventListener('click', () => document.body.classList.add('rot-ok'));
 $('#vClose').addEventListener('click', closeViewer);
 $('#vSpin').addEventListener('click', (e) => { viewer.spin = !viewer.spin; e.currentTarget.setAttribute('aria-pressed', String(viewer.spin)); });
 document.querySelectorAll('#vctrl [data-pose]').forEach((b) => b.addEventListener('click', () => setPose(b.dataset.pose)));
@@ -1374,21 +1498,32 @@ let mmTimer = 0, worldT = 0;
 function step() {
   const dt = Math.min(clock.getDelta(), 0.05);
   worldT += dt;
-  let mx = 0, mz = 0;
+  let kx = 0, kz = 0;
   const inUI = !$('#panel').hidden;
-  if (!viewer.on && !inUI) {
-    if (keys.has('KeyW') || keys.has('ArrowUp')) mz -= 1;
-    if (keys.has('KeyS') || keys.has('ArrowDown')) mz += 1;
-    if (keys.has('KeyA') || keys.has('ArrowLeft')) mx -= 1;
-    if (keys.has('KeyD') || keys.has('ArrowRight')) mx += 1;
-    mx += joy.x; mz += joy.y;
+  const canMove = !viewer.on && !inUI;
+  if (canMove) {
+    if (keys.has('KeyW') || keys.has('ArrowUp')) kz -= 1;
+    if (keys.has('KeyS') || keys.has('ArrowDown')) kz += 1;
+    if (keys.has('KeyA') || keys.has('ArrowLeft')) kx -= 1;
+    if (keys.has('KeyD') || keys.has('ArrowRight')) kx += 1;
   }
-  const ml = Math.hypot(mx, mz);
-  if (ml > 1) { mx /= ml; mz /= ml; }
-  const mag = Math.min(1, ml);
-  if (mag > 0.08) {
-    const sp = 4.6 * mag * dt;
-    const nx = ps.x + mx * sp, nz = ps.z + mz * sp;
+  const km = Math.hypot(kx, kz);
+  const jx = canMove ? joy.x : 0, jz = canMove ? joy.y : 0, jm = Math.hypot(jx, jz);
+  // スティックを端まで倒すとダッシュ（少し戻しても急に止まらないよう幅を持たせる）
+  if (jm > 0.94) joy.run = true; else if (jm < 0.82) joy.run = false;
+  const shift = keys.has('ShiftLeft') || keys.has('ShiftRight');
+  let mx, mz, mag, running;
+  if (km > 0) { mx = kx / km; mz = kz / km; mag = 1; running = shift; }
+  else { mx = jm ? jx / Math.max(jm, 1) : 0; mz = jm ? jz / Math.max(jm, 1) : 0; mag = Math.min(1, jm); running = joy.run; }
+  const moving = mag > 0.08;
+  running = running && moving;
+  joyEl.classList.toggle('run', running);
+  let turnRate = 0;
+  if (moving) {
+    const speed = running ? 8.4 : 4.4 * Math.max(0.35, Math.min(1, mag / 0.82));
+    const len = Math.hypot(mx, mz) || 1;
+    const sp = speed * dt;
+    const nx = ps.x + mx / len * sp, nz = ps.z + mz / len * sp;
     if (walkable(nx, nz)) { ps.x = nx; ps.z = nz; }
     else if (walkable(nx, ps.z)) ps.x = nx;
     else if (walkable(ps.x, nz)) ps.z = nz;
@@ -1397,10 +1532,24 @@ function step() {
     if (!walkable(ps.x, ps.z)) { ps.x = before.x; ps.z = before.z; }
     const target = Math.atan2(mx, mz);
     let d = target - ps.yaw; d = Math.atan2(Math.sin(d), Math.cos(d));
-    ps.yaw += d * Math.min(1, dt * 12);
+    const turnStep = d * Math.min(1, dt * (running ? 9 : 12));
+    ps.yaw += turnStep;
+    turnRate = dt > 0 ? turnStep / dt : 0;
   }
-  const wantWalk = viewer.on ? (viewer.pose === 'walk' ? 1 : 0) : (mag > 0.08 ? mag : 0);
-  ps.walk += (wantWalk - ps.walk) * Math.min(1, dt * 10);
+  ps.turn += (THREE.MathUtils.clamp(turnRate * 0.12, -1, 1) - ps.turn) * Math.min(1, dt * 8);
+  const vRun = viewer.on && viewer.pose === 'run';
+  const wantRun = viewer.on ? (vRun ? 1 : 0) : (running ? 1 : 0);
+  const wantWalk = viewer.on ? (viewer.pose === 'walk' ? 1 : 0) : (moving && !running ? Math.max(0.45, Math.min(1, mag / 0.82)) : 0);
+  ps.walk += (wantWalk - ps.walk) * Math.min(1, dt * 8);
+  ps.run += (wantRun - ps.run) * Math.min(1, dt * 6);
+  // 走ると足元に土ぼこり
+  dustTimer -= dt;
+  if (ps.run > 0.6 && (moving || vRun) && dustTimer <= 0) {
+    const yaw = viewer.on ? viewer.yaw : ps.yaw;
+    spawnDust(ps.x - Math.sin(yaw) * 0.35 + (Math.random() - 0.5) * 0.3, ps.z - Math.cos(yaw) * 0.35 + (Math.random() - 0.5) * 0.3);
+    dustTimer = 0.075;
+  }
+  updateDust(dt);
   if (ps.mode === 'attack') {
     ps.actionT += dt;
     if (ps.actionT > 0.55) {
@@ -1417,7 +1566,7 @@ function step() {
     if (viewer.spin && !viewer.pts.size) viewer.yaw += dt * 0.6;
     player.root.rotation.y = viewer.yaw;
   } else player.root.rotation.y = ps.yaw;
-  animateCat(player, dt, { walk: ps.walk, mode: ps.mode, actionT: Math.max(0, ps.actionT) });
+  animateCat(player, dt, { walk: ps.walk, run: ps.run, turn: viewer.on ? 0 : ps.turn, mode: ps.mode, actionT: Math.max(0, ps.actionT) });
   for (const n of npcs) animateCat(n.c, dt, n.st);
   for (const f of animated) f(dt, worldT);
 
@@ -1435,13 +1584,15 @@ function step() {
 
   // カメラ
   if (viewer.on) {
-    const narrow = window.innerWidth < 640;
-    camPos.set(ps.x + (narrow ? 0 : -0.6), narrow ? 1.0 : 1.2, ps.z + viewer.dist);
-    camLook.set(ps.x + (narrow ? 0 : -0.6), narrow ? 0.25 : 0.82, ps.z);
+    const narrow = window.innerWidth < 640 && !isCompact();
+    const side = narrow ? 0 : (isCompact() ? -0.75 : -0.6);
+    camPos.set(ps.x + side, narrow ? 1.0 : 1.15, ps.z + viewer.dist);
+    camLook.set(ps.x + side, narrow ? 0.25 : (isCompact() ? 0.62 : 0.82), ps.z);
     camera.position.lerp(camPos, Math.min(1, dt * 6));
   } else {
     const portrait = window.innerWidth < window.innerHeight;
-    camPos.set(ps.x, portrait ? 13.5 : 10.5, ps.z + (portrait ? 11 : 10));
+    const pull = ps.run * 1.2;
+    camPos.set(ps.x, (portrait ? 13.5 : 10.5) + pull, ps.z + (portrait ? 11 : 10) + pull);
     camLook.set(ps.x, 0.8, ps.z - (portrait ? 0.6 : 0));
     camera.position.lerp(camPos, Math.min(1, dt * 5));
   }
