@@ -343,6 +343,144 @@ body.cine #hud, body.cine #banner, body.cine #toast { display: none; }
   .ccap b { font-size: 13px; }
 }
 @media (prefers-reduced-motion: reduce) { #titleCard, .lbar i { transition: none; } }
+/* ---------- 専用画面 ---------- */
+#scr { position: absolute; inset: 0; z-index: 4; display: flex; flex-direction: column; --accent: var(--lantern);
+  background: radial-gradient(circle at 20% 0%, #2a2350, transparent 55%), var(--night); }
+body.in-screen #hud, body.in-screen #banner { display: none; }
+.scr-h { display: flex; align-items: center; gap: 12px; background: var(--panel); border-bottom: 3px solid var(--line);
+  padding: calc(8px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) 8px max(12px, env(safe-area-inset-left, 0px)); }
+#scrBack { padding: 8px 14px; font-size: 14px; }
+#scrTitle { margin: 0; flex: 1; min-width: 0; font-family: var(--display); font-weight: 400; font-size: 22px; color: var(--accent); }
+.scr-fish { display: flex; align-items: center; gap: 5px; font-weight: 800; color: var(--fish); font-variant-numeric: tabular-nums; white-space: nowrap; }
+.scr-fish svg { width: 22px; height: 12px; }
+.scr-b { flex: 1; min-height: 0; display: grid; grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr); gap: 12px;
+  padding: 12px max(12px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.scr-l { display: flex; flex-direction: column; gap: 8px; min-height: 0; min-width: 0; }
+.pv { position: relative; flex: 1; min-height: 120px; border: 3px solid var(--line); border-radius: 16px; overflow: hidden;
+  background: radial-gradient(circle at 50% 38%, #3d3470, #1a1530 72%); }
+.pv canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.pvhint { position: absolute; right: 10px; top: 8px; font-size: 11px; color: var(--muted); pointer-events: none; }
+.scr-r { min-height: 0; min-width: 0; overflow-y: auto; background: var(--panel); border: 3px solid var(--line); border-radius: 16px; padding: 14px; }
+#scr[data-kind="mission"] .scr-b { grid-template-columns: minmax(0, 1fr); }
+#scr[data-kind="mission"] .scr-l { display: none; }
+.pvnav { display: flex; align-items: center; gap: 8px; }
+.pvnav .nb { width: 44px; height: 44px; padding: 0; font-size: 16px; flex: none; }
+.pvname { flex: 1; min-width: 0; text-align: center; line-height: 1.2; }
+.pvname b { display: block; font-family: var(--display); font-weight: 400; font-size: 18px; color: var(--accent); }
+.pvname small { color: var(--muted); font-size: 11px; font-weight: 800; }
+.setb { flex: none; padding: 10px 16px; background: var(--accent); }
+.rhead { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 10px; }
+.rhead .chip.on { background: var(--accent); color: var(--line); }
+.lvtag { margin-left: auto; font-weight: 800; color: var(--muted); }
+.lvtag b, .lvbig b { font-family: var(--display); font-weight: 400; color: var(--accent); }
+.lvtag b { font-size: 22px; }
+.lvbig { font-weight: 800; color: var(--muted); }
+.lvbig b { font-size: 34px; }
+.sgrid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+.sbox { background: var(--panel-2); border: 2px solid var(--line); border-radius: 10px; padding: 6px 8px; font-variant-numeric: tabular-nums; }
+.sbox small { display: block; font-size: 10.5px; font-weight: 800; color: var(--muted); }
+.sbox b { font-size: 17px; }
+.sbox em { font-style: normal; font-size: 11px; font-weight: 800; color: var(--leaf); margin-left: 4px; }
+.rsub { margin: 14px 0 6px; font-family: var(--display); font-weight: 400; font-size: 15px; color: var(--accent); }
+.hint { margin: 8px 0 0; font-size: 12px; color: var(--muted); line-height: 1.6; }
+.wlist { display: grid; gap: 6px; }
+.wrow, .prow, .irow { display: grid; align-items: center; gap: 10px; width: 100%; text-align: left; color: var(--ink); background: var(--panel-2);
+  border: 2px solid var(--line); border-radius: 12px; padding: 8px 10px; font-family: var(--body); cursor: pointer; }
+.wrow { grid-template-columns: auto minmax(0, 1fr) auto; }
+.wrow:not(:disabled):hover, .irow:hover, .prow:not(:disabled):hover { border-color: var(--accent); }
+.wrow.on { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.wrow.fixed { cursor: default; }
+.wslot { width: 40px; height: 40px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-weight: 400; font-size: 14px;
+  background: var(--fish); color: var(--line); border: 2px solid var(--line); }
+.wrow.fixed .wslot { background: var(--ember); font-size: 11px; }
+.wbody b, .prow b, .ibody b { display: block; font-size: 14px; }
+.wbody small, .prow small, .ibody small { display: block; font-size: 11.5px; color: var(--muted); line-height: 1.5; font-weight: 500; }
+.wmeta, .imeta { display: grid; justify-items: end; gap: 2px; font-size: 11px; font-weight: 800; color: var(--muted); white-space: nowrap; }
+.picker { margin-top: 10px; padding: 10px; border: 2px dashed var(--accent); border-radius: 12px; display: grid; gap: 6px; }
+.ptitle { margin: 0 0 2px; font-size: 12.5px; font-weight: 800; color: var(--accent); }
+.prow { grid-template-columns: minmax(0, 1fr) auto; }
+.prow small { grid-column: 1 / -1; }
+.prow span { font-size: 11px; font-weight: 800; color: var(--muted); }
+.prow.gray, .prow:disabled { opacity: .45; filter: grayscale(1); cursor: not-allowed; }
+.meter { position: relative; height: 28px; border: 3px solid var(--line); border-radius: 14px; background: #1f2a1c; overflow: hidden; }
+.meter i { position: absolute; left: 0; top: 0; bottom: 0; background: linear-gradient(#b8f59a, #6fc95a); transition: width .3s; }
+.meter span { position: relative; display: grid; place-items: center; height: 100%; font-weight: 800; font-size: 13px; color: var(--ink); text-shadow: 0 1px 0 var(--line); font-variant-numeric: tabular-nums; }
+.mbtns { display: flex; gap: 8px; margin-top: 10px; flex-wrap: wrap; }
+.iteminfo { display: grid; gap: 4px; justify-items: start; padding: 4px 2px; }
+.iteminfo b { font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--accent); }
+.iteminfo small { font-size: 12px; color: var(--ink); line-height: 1.5; }
+.buyb { margin-top: 4px; width: 100%; background: var(--accent); }
+.ilist { display: grid; gap: 6px; }
+.irow { grid-template-columns: minmax(0, 1fr) auto; }
+.irow.on { border-color: var(--accent); box-shadow: inset 0 0 0 2px var(--accent); }
+.bname { font-family: var(--display); font-weight: 400; font-size: 22px; color: var(--accent); }
+.btext { margin: 0; font-size: 13.5px; line-height: 1.75; }
+.mhead { display: flex; align-items: center; gap: 8px; }
+.mhead b { font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--accent); }
+.mtrack { position: relative; height: 190px; margin-top: 10px; overflow-x: auto; overflow-y: hidden; }
+.mtrack::after { content: ""; position: absolute; left: calc(4 * 170px + 30px); top: 0; width: 1px; height: 1px; }
+.mroad { position: absolute; left: 70px; top: 60px; height: 12px; width: calc(3 * 170px); background: #ff8fc8; border: 3px solid var(--line); border-radius: 8px; }
+.mnode { position: absolute; top: 14px; left: calc(14px + var(--i) * 170px); width: 152px; display: grid; justify-items: center; gap: 6px;
+  background: none; border: 0; padding: 0; color: var(--ink); cursor: pointer; font-family: var(--body); }
+.mball { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-weight: 400; font-size: 16px;
+  border: 4px solid var(--line); box-shadow: 0 4px 0 var(--line); background: var(--lantern); color: var(--line); }
+.mnode.mini .mball { width: 76px; height: 76px; margin: 10px 0; background: var(--fish); font-size: 14px; }
+.mnode.locked { cursor: not-allowed; }
+.mnode.locked .mball { background: #4b4270; color: #2a2442; }
+.mnode:not(.locked):hover .mball { transform: translateY(-2px); }
+.mlabel { font-size: 12.5px; font-weight: 800; text-align: center; line-height: 1.35; text-shadow: 0 2px 0 var(--line); }
+.ntag { position: absolute; top: -6px; right: 4px; z-index: 1; font-size: 11px; font-weight: 800; padding: 2px 8px; border-radius: 999px; border: 2px solid var(--line); }
+.ntag.new { background: var(--ember); color: #fff; }
+.ntag.done { background: var(--leaf); color: var(--line); }
+.ntag.soon { background: var(--panel-2); color: var(--muted); }
+#scrPop { position: absolute; inset: 0; z-index: 2; display: grid; place-items: center; background: rgba(13,10,26,.6);
+  padding: calc(10px + env(safe-area-inset-top, 0px)) max(12px, env(safe-area-inset-right, 0px)) calc(10px + env(safe-area-inset-bottom, 0px)) max(12px, env(safe-area-inset-left, 0px)); }
+.mcard { width: min(640px, 100%); max-height: 100%; overflow-y: auto; background: #3b2a6e; border: 4px solid var(--line); border-radius: 18px; box-shadow: 0 6px 0 var(--line); }
+.mctop { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: #4a3488; border-bottom: 3px solid var(--line); }
+.mctype { flex: none; font-family: var(--display); font-weight: 400; font-size: 13px; padding: 4px 10px; border-radius: 10px; border: 2px solid var(--line); background: var(--lantern); color: var(--line); }
+.mctype.mini { background: var(--fish); }
+#mcTitle { flex: 1; min-width: 0; font-family: var(--display); font-weight: 400; font-size: 19px; color: #fff; text-wrap: balance; }
+.mcrec { flex: none; text-align: center; background: var(--panel); border: 2px solid var(--line); border-radius: 10px; padding: 3px 10px; line-height: 1.1; }
+.mcrec small { display: block; font-size: 10px; color: var(--lantern); font-weight: 800; }
+.mcrec b { font-family: var(--display); font-weight: 400; font-size: 18px; }
+.mcbody { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 12px; padding: 12px; background: #fff3c4; color: var(--line); }
+.mcmap { width: 100%; height: auto; border: 3px solid var(--line); border-radius: 10px; }
+.mcdl { margin: 0; display: grid; gap: 4px; align-content: start; }
+.mcdl dt { justify-self: start; font-size: 11px; font-weight: 800; color: #fff; background: #e0902a; padding: 1px 10px; border-radius: 999px; }
+.mcdl dd { margin: 0 0 4px; font-size: 14px; font-weight: 800; }
+.mcrow { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 2px; }
+.mcrow span { background: #ffe08a; border: 2px solid #e0902a; border-radius: 10px; padding: 3px 6px; text-align: center; }
+.mcrow small { display: block; font-size: 10px; font-weight: 800; color: #9a5a10; }
+.mcrow b { font-size: 13px; }
+.mcdesc { margin: 0; padding: 10px 14px; background: #fff3c4; color: var(--line); font-size: 14px; font-weight: 800; line-height: 1.6; border-top: 2px dashed #e0902a; }
+.mcbtns { display: flex; justify-content: flex-end; gap: 8px; padding: 10px 12px; }
+.mcbtns .go { background: var(--ember); color: #fff; font-family: var(--display); font-weight: 400; font-size: 17px; }
+@media (orientation: landscape) and (max-height: 520px) {
+  .scr-h { padding-top: calc(5px + env(safe-area-inset-top, 0px)); padding-bottom: 5px; }
+  #scrBack { padding: 5px 10px; font-size: 12px; }
+  #scrTitle { font-size: 17px; }
+  .scr-b { padding-top: 8px; padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)); gap: 8px; }
+  .scr-r { padding: 10px; }
+  .pvnav .nb { width: 36px; height: 36px; }
+  .pvname b { font-size: 15px; }
+  .setb { padding: 7px 12px; font-size: 13px; }
+  .sbox b { font-size: 15px; }
+  .wslot { width: 34px; height: 34px; font-size: 12px; }
+  .wrow, .prow, .irow { padding: 6px 8px; }
+  .mtrack { height: 170px; }
+  .mcbody { grid-template-columns: 150px minmax(0, 1fr); padding: 8px; gap: 8px; }
+  .mcdesc { font-size: 12.5px; padding: 6px 10px; }
+  .mcdl dd { font-size: 12.5px; }
+  .mctop { padding: 6px 10px; }
+  #mcTitle { font-size: 16px; }
+  .mcbtns { padding: 6px 10px; }
+}
+@media (max-width: 640px) and (orientation: portrait) {
+  .scr-b { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
+  .pv { flex: none; height: 34vh; }
+  .sgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .mcbody { grid-template-columns: minmax(0, 1fr); }
+}
 #loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--night); z-index: 5; transition: opacity .4s; }
 #loading.done { opacity: 0; pointer-events: none; }
 #loading p { font-family: var(--display); font-size: 20px; color: var(--lantern); }
@@ -396,6 +534,18 @@ body.cine #hud, body.cine #banner, body.cine #toast { display: none; }
     <div class="dbox chunky"><img id="dImg" alt=""><div class="dtext"><b id="dName"></b><p id="dText"></p></div><span class="dnext">▼</span></div>
   </section>
 
+  <section id="scr" hidden>
+    <header class="scr-h">
+      <button id="scrBack" class="btn ghost">◀ もどる</button>
+      <h2 id="scrTitle"></h2>
+      <span class="scr-fish"><svg viewBox="0 0 22 12" aria-hidden="true"><path d="M1 6c3-5 10-6 15-1l5-4v10l-5-4C11 12 4 11 1 6z" fill="#8fd3ec" stroke="#0d0a1a" stroke-width="1.5"/></svg><b id="scrFish">0</b> ニボシ</span>
+    </header>
+    <div class="scr-b">
+      <div class="scr-l"><div class="pv" id="pv"><span class="pvhint">ドラッグで回転</span></div><div id="scrLB"></div></div>
+      <div class="scr-r" id="scrR"></div>
+    </div>
+    <div id="scrPop" hidden></div>
+  </section>
   <section id="panel" hidden>
     <div class="sheet chunky" role="dialog" aria-modal="true" aria-labelledby="pTitle">
       <header>
@@ -454,7 +604,8 @@ const state = Object.assign({ lv: 1, nibosi: 60, items: { kari: 0, mata: 0, tsum
   try { return JSON.parse(localStorage.getItem(SAVE_KEY)) || {}; } catch (e) { return {}; }
 })());
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
-const stats = (lv) => ({ hp: 120 + (lv - 1) * 14, atk: 18 + (lv - 1) * 3, def: 10 + (lv - 1) * 2, spd: 14 + Math.floor((lv - 1) * 1.5) });
+// 能力値はネコごと（statsOf）。出撃中は使用中のネコの値（curStats）を使う
+const curStats = () => statsOf(curCat(), lvOf(curCat()));
 const trainCost = (lv) => (20 + (lv - 1) * 10) * 2;
 
 /* ================= レンダラ ================= */
@@ -1396,6 +1547,7 @@ const joy = { x: 0, y: 0, id: null, cx: 0, cy: 0 };
 window.addEventListener('keydown', (e) => {
   if (e.target.closest && e.target.closest('input,textarea')) return;
   keys.add(e.code);
+  if (SCR.kind) { if (e.code === 'Escape') $('#scrBack').click(); return; }
   if (cine.active) { if (e.code === 'Escape') { if (cine.skip) cine.skip(); else endCine(); } return; }
   if (S.loading) return;
   if (dlg.active) { if (['Space', 'Enter', 'KeyE', 'KeyJ'].includes(e.code)) { e.preventDefault(); nextLine(); } return; }
@@ -1471,76 +1623,12 @@ function setHint() {
 
 // 道具：買っておくと次の出撃で自動で効果が出る。クリアすると消費、失敗・ギブアップでは消えない
 const ITEMS = [
-  { id: 'kari', name: 'カリカリ', desc: 'HPが3割を切ると自動で40回復（1個につき1回）', price: 15, max: 3 },
-  { id: 'mata', name: 'マタタビ玉', desc: 'B攻撃・C攻撃のクールタイムが20%短くなる', price: 40, max: 1 },
-  { id: 'tsume', name: '爪とぎ石', desc: '攻撃力が+5される', price: 30, max: 1 }
+  { id: 'kari', name: 'カリカリ', effect: '自動かいふく', desc: 'HPが3割を切ると自動で40回復（1個につき1回）', price: 15, max: 3 },
+  { id: 'mata', name: 'マタタビ玉', effect: 'クールタイム短縮', desc: 'B攻撃・C攻撃のクールタイムが20%短くなる', price: 40, max: 1 },
+  { id: 'tsume', name: '爪とぎ石', effect: '攻撃力アップ', desc: '攻撃力が+5される', price: 30, max: 1 }
 ];
 function statCell(label, v, nv) { return `<div class="stat"><small>${label}</small><b>${v}</b>${nv != null ? `<em>→ ${nv}</em>` : ''}</div>`; }
-function skillSetHTML(cat) {
-  const lo = state.loadout[cat];
-  return `<h3 class="subh">わざセット：${CATS[cat].name}</h3>
-    <p class="note" style="margin-top:0">通常攻撃（ひっかく・いりょく ${NORMAL_POWER}）は固定。4つの固有わざから B攻撃 と C攻撃 に1つずつセットできます。</p>
-    <ul class="list">${SKILLS[cat].map((k) => `
-      <li class="row skrow"><div><b>${k.name}　<span class="chip">いりょく ${k.power}${k.hits > 1 ? '×' + k.hits : ''}</span> <span class="chip">CT ${skillCD(k)}秒</span></b><small>${k.desc}</small></div>
-        <div class="skset"><button class="btn ${lo.B === k.id ? '' : 'ghost'}" data-act="setSkill" data-slot="B" data-id="${k.id}" aria-pressed="${lo.B === k.id}">B</button><button class="btn ${lo.C === k.id ? '' : 'ghost'}" data-act="setSkill" data-slot="C" data-id="${k.id}" aria-pressed="${lo.C === k.id}">C</button></div></li>`).join('')}
-    </ul>`;
-}
-const PANELS = {
-  gate: () => `
-    <p class="lead">ゲートの先は夜の街のどこか。仲間と力を合わせてボスを倒し、ニボシと新しいネコを手に入れよう。</p>
-    <ul class="list">
-      <li class="row"><div><b>第1話　下水道の大ドブネズミ ${state.cleared1 ? '<span class="chip">クリア済み</span>' : ''}</b><small>家の路地裏から下水道へ。小ボス：大ドブネズミ ／ 推奨 Lv 3</small></div><button class="btn" data-act="depart">出発する</button></li>
-      <li class="row locked"><div><b>第2話　？？？</b><small>${state.cleared1 ? '準備中' : '第1話をクリアすると開きます'}</small></div></li>
-      <li class="row locked"><div><b>第3話　？？？</b><small>第2話をクリアすると開きます</small></div></li>
-    </ul>
-    <p class="note">いまのレベル：Lv ${state.lv}。カリカリ（HP回復）は道具屋で買えます。協力プレイ（1〜4人）は今後対応予定です。</p>`,
-  train: () => {
-    const s = stats(state.lv), n = stats(state.lv + 1), cost = trainCost(state.lv);
-    const ok = state.nibosi >= cost;
-    return `
-    <div class="lvhead"><span class="big">Lv ${state.lv}</span><span class="chip">次のレベルまで ニボシ ${cost}</span></div>
-    <div class="statgrid">${statCell('HP', s.hp, n.hp)}${statCell('こうげき', s.atk, n.atk)}${statCell('ぼうぎょ', s.def, n.def)}${statCell('すばやさ', s.spd, n.spd)}</div>
-    <button class="btn" data-act="train" ${ok ? '' : 'disabled'}>修行する（ニボシ ${cost}）</button>
-    <p class="note">${ok ? 'ネズミ型サンドバッグで修行します。' : `ニボシがあと ${cost - state.nibosi} 足りません。広場に落ちているニボシを拾って集めましょう。`}</p>`;
-  },
-  dress: () => `
-    <div class="cards">
-      <div class="ccard on"><div class="face"><img src="${portraitURL}" alt="ノネコ"></div><b>ノネコ</b><small>アタッカー</small></div>
-      <div class="ccard"><div class="face"><span class="q" style="color:#3f8a62">?</span></div><b>？？？</b><small>空から来た…</small></div>
-      <div class="ccard"><div class="face"><span class="q" style="color:#a0583a">?</span></div><b>？？？</b><small>しっぽが二本</small></div>
-    </div>
-    <p class="lead">いま使えるのはノネコだけです。ボスを倒すと、台座の上のネコたちが仲間になります（どのネコも固有わざを4つ持っています）。</p>
-    <div class="actions"><button class="btn" data-act="view">ノネコの姿をくわしく見る</button></div>
-    ${skillSetHTML('noneko')}`,
-  shop: () => `
-    <p class="lead">店主のチャトラ「いらっしゃい。ニボシで払っておくれ」</p>
-    <ul class="list">${ITEMS.map((it) => `
-      <li class="row"><div><b>${it.name}　<span class="chip">準備 ${state.items[it.id] || 0} / ${it.max}</span></b><small>${it.desc}</small></div>
-      <button class="btn" data-act="buy" data-id="${it.id}" ${state.nibosi >= it.price && (state.items[it.id] || 0) < it.max ? '' : 'disabled'}>${(state.items[it.id] || 0) >= it.max ? '準備ずみ' : 'ニボシ ' + it.price}</button></li>`).join('')}
-    </ul>
-    <p class="note">買った道具は次の出撃で自動で効果が出ます（効果はステージの最後まで続きます）。ステージをクリアするとなくなり、やられたときやギブアップしたときはなくなりません。</p>`,
-  book: () => `
-    <ul class="list">
-      <li class="row"><div><b>ノネコ <span class="chip">仲間</span></b>
-        <dl class="prof" style="margin-top:8px"><dt>役割</dt><dd>アタッカー（近接）</dd><dt>わざ</dt><dd>ノラ連撃 ／ とびかかり ／ 回転ネコパンチ ／ ノラの意地</dd><dt>特徴</dt><dd>キジトラ、左耳のさくらカット、右目の上のキズ、ボロの赤いスカーフ</dd></dl>
-        <small>路地裏で育った二足歩行のネコ。口は悪いが仲間思い。</small></div></li>
-      <li class="row locked"><div><b>？？？ <span class="chip">未発見</span></b><small>アンテナのような影。空から落ちてきたネコらしい。</small></div></li>
-      <li class="row locked"><div><b>？？？ <span class="chip">未発見</span></b><small>しっぽが二本ある影。古い町に住むネコのうわさ。</small></div></li>
-      ${(state.seen || {}).rat ? `<li class="row"><div><b>ドブネズミ <span class="chip">敵</span></b><small>路地裏と下水道にすむネズミ。近づくと身構えてから飛びかかってくる。身構えたら横によけよう。</small></div></li>` : `<li class="row locked"><div><b>？？？ <span class="chip">未発見</span></b><small>路地裏で物音がする…</small></div></li>`}
-      ${(state.seen || {}).boss ? `<li class="row"><div><b>大ドブネズミ <span class="chip">小ボス</span></b><small>下水道をナワバリにする大きなネズミ。ビンのふたの王冠がじまん。突進のあとは目を回してスキだらけ。</small></div></li>` : `<li class="row locked"><div><b>？？？ <span class="chip">小ボス</span></b><small>下水道の奥にいるらしい。</small></div></li>`}
-      <li class="row locked"><div><b>？？？ <span class="chip">ボス</span></b><small>下水道のさらに奥から、地鳴りのような鳴き声がする。</small></div></li>
-    </ul>`
-};
-function openPanel(r) {
-  const p = $('#panel');
-  p.style.setProperty('--accent', r.accent);
-  $('#pKicker').textContent = r.sub;
-  $('#pTitle').textContent = r.name;
-  $('#pBody').innerHTML = PANELS[r.id]();
-  p.hidden = false;
-  $('#pClose').focus();
-  keys.clear();
-}
+function openPanel(r) { openScreen(ROOM_SCREEN[r.id]); }
 function closePanel() { $('#panel').hidden = true; $('#panel').dataset.lock = ''; $('#pClose').hidden = false; }
 $('#pClose').addEventListener('click', closePanel);
 $('#panel').addEventListener('click', (e) => {
@@ -1548,30 +1636,7 @@ $('#panel').addEventListener('click', (e) => {
   const b = e.target.closest('[data-act]');
   if (!b) return;
   const act = b.dataset.act;
-  if (act === 'train') {
-    const cost = trainCost(state.lv);
-    if (state.nibosi < cost) return;
-    state.nibosi -= cost; state.lv += 1; save(); refreshHud();
-    const bag = ROOMS[1].group.userData.bag; if (bag) bag.userData.hit = 1.2;
-    ps.mode = 'attack'; ps.actionT = 0;
-    toast(`レベルが ${state.lv} になった！`);
-    $('#pBody').innerHTML = PANELS.train();
-  } else if (act === 'buy') {
-    const it = ITEMS.find((i) => i.id === b.dataset.id);
-    if (!it || state.nibosi < it.price || (state.items[it.id] || 0) >= it.max) return;
-    state.nibosi -= it.price; state.items[it.id] = (state.items[it.id] || 0) + 1; save(); refreshHud();
-    toast(`${it.name}を準備した（次の出撃で使われます）`);
-    $('#pBody').innerHTML = PANELS.shop();
-  } else if (act === 'view') {
-    closePanel(); openViewer();
-  } else if (act === 'setSkill') {
-    const lo = state.loadout[curCat()], slot = b.dataset.slot, other = slot === 'B' ? 'C' : 'B';
-    if (lo[other] === b.dataset.id) lo[other] = lo[slot]; // 反対の枠に入っていたら入れかえる
-    lo[slot] = b.dataset.id; save();
-    toast(`${slot}攻撃に「${skillById(curCat(), b.dataset.id).name}」をセット`);
-    $('#pBody').innerHTML = PANELS.dress();
-  } else if (act === 'depart') {
-    departMovie();
+  if (act === 'none') {
   } else if (act === 'retryArea') {
     closePanel(); resetStage(S.area); banner(AREA_DEF[S.area].name, 'もう一度挑戦', '#ffb547', 'RETRY');
   } else if (act === 'resume') {
@@ -1587,6 +1652,365 @@ $('#btnAct').addEventListener('pointerdown', (e) => { if (mode === 'stage') { e.
 $('#btnB').addEventListener('pointerdown', (e) => { e.preventDefault(); useSkill('B'); });
 $('#btnC').addEventListener('pointerdown', (e) => { e.preventDefault(); useSkill('C'); });
 $('#btnMenu').addEventListener('click', openMenu);
+
+/* ================= 専用画面（ミッション・修行・着せ替え・道具屋・図鑑） ================= */
+// 左に3Dプレビュー、右に情報という共通レイアウト。プレビューは専用の小さなレンダラーで描く。
+const CAT_IDS = ['noneko', 'alien', 'bake'];
+const catUnlocked = (id) => id === 'noneko' || !!(state.unlocked || {})[id];
+const CAT_BASE = {
+  noneko: { hp: 120, atk: 18, def: 10, spd: 14, g: [14, 3, 2, 1.5] },
+  alien: { hp: 100, atk: 17, def: 8, spd: 16, g: [11, 3, 1.5, 2] },
+  bake: { hp: 110, atk: 16, def: 9, spd: 18, g: [12, 2.5, 2, 2.5] }
+};
+function statsOf(cat, lv) {
+  const b = CAT_BASE[cat], n = lv - 1;
+  return { hp: Math.round(b.hp + n * b.g[0]), atk: Math.round(b.atk + n * b.g[1]), def: Math.round(b.def + n * b.g[2]), spd: Math.floor(b.spd + n * b.g[3]) };
+}
+function lvOf(cat) { return cat === 'noneko' ? state.lv : ((state.lvs || {})[cat] || 1); }
+function setLv(cat, v) { if (cat === 'noneko') state.lv = v; else { state.lvs = state.lvs || {}; state.lvs[cat] = v; } }
+
+/* ---------- プレビュー用レンダラー ---------- */
+const PV = { r: null, scene: null, cam: null, holder: null, cur: null, cache: {}, yaw: 0.35, drag: null, el: null, ro: null, pose: null, poseT: 0 };
+const PV_MODELS = {
+  noneko: () => ({ kind: 'cat', o: buildCat({}) }),
+  alien: () => ({ kind: 'cat', o: buildCat({ silhouette: true, base: '#221c36', glow: '#7dffb0', antenna: true, sakura: false, scarfOn: false, belt: false, stripes: false }) }),
+  bake: () => ({ kind: 'cat', o: buildCat({ silhouette: true, base: '#221c36', glow: '#ff9a5c', tails: 2, sakura: false, scarfOn: false, belt: false, stripes: false }) }),
+  chatora: () => ({ kind: 'cat', o: buildCat({ base: '#e09a4f', stripe: '#b0602a', cream: '#fff1dc', eye: '#79c7e8', scarfOn: false, sakura: false, scar: false, fang: false, belt: false }) }),
+  rat: () => ({ kind: 'rat', o: buildRat() }),
+  boss: () => ({ kind: 'rat', o: buildRat({ boss: true, fur: '#5e5248', belly: '#9c8b74' }), scale: 1.35 }),
+  shadowRat: () => ({ kind: 'rat', o: buildRat({ fur: '#1d1826', belly: '#1d1826', pink: '#2a2236', eye: '#ff3b3b' }), scale: 1.6 }),
+  kari: () => { const g = new THREE.Group(); part(g, box(0.7, 0.85, 0.36), '#d9553b', 0, 0.5, 0, { ol: 0.02 }); part(g, box(0.52, 0.3, 0.38), '#f2ead8', 0, 0.55, 0, { ol: 0.01 });
+    part(g, ellip(0.1, 0.07, 0.03, 12, 8), '#8a5a34', -0.08, 0.55, 0.2, { ol: 0 }); part(g, ellip(0.1, 0.07, 0.03, 12, 8), '#8a5a34', 0.1, 0.5, 0.2, { ol: 0 });
+    part(g, box(0.72, 0.08, 0.38), '#b03a28', 0, 0.96, 0, { ol: 0.01 }); return { kind: 'item', o: { root: g } }; },
+  mata: () => { const g = new THREE.Group(); part(g, new THREE.SphereGeometry(0.42, 24, 18), '#8fbf5a', 0, 0.5, 0, { ol: 0.02 });
+    for (let k = 0; k < 3; k++) g.add(tube([[Math.cos(k * 2.1) * 0.43, 0.2, Math.sin(k * 2.1) * 0.43], [Math.cos(k * 2.1 + 1) * 0.44, 0.5, Math.sin(k * 2.1 + 1) * 0.44], [Math.cos(k * 2.1 + 2) * 0.43, 0.8, Math.sin(k * 2.1 + 2) * 0.43]], 0.02, basic('#d8c08f')));
+    part(g, ellip(0.2, 0.04, 0.1), '#5f9a3a', 0.15, 0.95, 0, { rz: 0.4, ol: 0.01 }); part(g, ellip(0.18, 0.04, 0.09), '#5f9a3a', -0.12, 0.95, 0.05, { rz: -0.5, ol: 0.01 }); return { kind: 'item', o: { root: g } }; },
+  tsume: () => { const g = new THREE.Group(); part(g, box(0.95, 0.45, 0.6), '#8a8fa0', 0, 0.3, 0, { ol: 0.02 });
+    for (let k = 0; k < 3; k++) part(g, box(0.05, 0.02, 0.5), '#5a5f70', -0.2 + k * 0.2, 0.535, 0, { rz: 0.15, ol: 0 });
+    part(g, box(1.05, 0.08, 0.7), '#6b4f42', 0, 0.04, 0, { ol: 0.015 }); return { kind: 'item', o: { root: g } }; }
+};
+const PV_FRAME = { cat: { y: 0.78, d: 3.6 }, rat: { y: 0.5, d: 3.0 }, item: { y: 0.5, d: 2.6 } };
+function pvInit() {
+  if (PV.r) return;
+  PV.r = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+  PV.r.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  PV.r.setClearColor(0x000000, 0);
+  PV.scene = new THREE.Scene();
+  PV.scene.add(new THREE.HemisphereLight(0xc8d8ff, 0x4a3a58, 0.75));
+  const dl = new THREE.DirectionalLight(0xffe6c4, 0.9); dl.position.set(2, 4, 3); PV.scene.add(dl);
+  PV.cam = new THREE.PerspectiveCamera(30, 1, 0.1, 30);
+  const ped = new THREE.Group(); PV.scene.add(ped);
+  part(ped, cyl(1.0, 1.08, 0.16, 48), '#2f2854', 0, -0.08, 0, { ol: 0.015 });
+  const rim = new THREE.Mesh(new THREE.RingGeometry(0.86, 0.95, 48), basic('#ffb547')); rim.rotation.x = -Math.PI / 2; rim.position.y = 0.012; ped.add(rim);
+  PV.ped = ped;
+  PV.holder = new THREE.Group(); PV.scene.add(PV.holder);
+  const cv = PV.r.domElement;
+  cv.addEventListener('pointerdown', (e) => { PV.drag = { id: e.pointerId, x: e.clientX }; cv.setPointerCapture(e.pointerId); });
+  cv.addEventListener('pointermove', (e) => { if (PV.drag && PV.drag.id === e.pointerId) { PV.yaw += (e.clientX - PV.drag.x) * 0.012; PV.drag.x = e.clientX; } });
+  const end = () => { PV.drag = null; };
+  cv.addEventListener('pointerup', end); cv.addEventListener('pointercancel', end);
+  PV.ro = new ResizeObserver(() => pvResize());
+}
+function pvResize() {
+  if (!PV.el) return;
+  const w = PV.el.clientWidth || 200, h = PV.el.clientHeight || 200;
+  PV.r.setSize(w, h, false);
+  PV.cam.aspect = w / h; PV.cam.updateProjectionMatrix();
+}
+function pvShow(el, id) {
+  pvInit();
+  if (PV.el !== el) {
+    if (PV.el) PV.ro.unobserve(PV.el);
+    PV.el = el; el.appendChild(PV.r.domElement); PV.ro.observe(el); pvResize();
+  }
+  if (PV.curId === id) return;
+  while (PV.holder.children.length) PV.holder.remove(PV.holder.children[0]);
+  if (!PV.cache[id]) PV.cache[id] = PV_MODELS[id]();
+  const m = PV.cache[id];
+  m.o.root.scale.setScalar(m.scale || 1);
+  m.o.root.position.set(0, 0, 0);
+  PV.holder.add(m.o.root);
+  PV.cur = m; PV.curId = id; PV.yaw = 0.35; PV.pose = null;
+  PV.ped.visible = m.kind !== 'item' || true;
+}
+function pvHide() { if (PV.el) { PV.ro.unobserve(PV.el); PV.el = null; } }
+function pvPose(p) { PV.pose = p; PV.poseT = 0; }
+function pvRender(dt) {
+  if (!PV.el || !PV.cur) return;
+  const m = PV.cur, f = PV_FRAME[m.kind];
+  if (!PV.drag) PV.yaw += dt * 0.25;
+  PV.holder.rotation.y = PV.yaw;
+  if (m.kind === 'cat') {
+    let mode = 'idle';
+    if (PV.pose === 'attack') { PV.poseT += dt; mode = PV.poseT < 0.55 ? 'attack' : 'idle'; }
+    animateCat(m.o, dt, { walk: 0, mode, actionT: PV.poseT });
+  } else if (m.kind === 'rat') animateRat(m.o, dt, {});
+  else m.o.root.position.y = Math.sin(worldT * 2) * 0.05;
+  const s = m.scale || 1, y = f.y * s, d = f.d * Math.max(1, s * 0.9);
+  const narrow = PV.cam.aspect < 0.75;
+  PV.cam.position.set(0, y + 0.55, d * (narrow ? 1.25 : 1));
+  PV.cam.lookAt(0, y, 0);
+  PV.r.render(PV.scene, PV.cam);
+}
+
+/* ---------- 画面の土台 ---------- */
+const SCR = { kind: null, view: 0, pick: null, item: 0, book: 0, mission: null };
+const SCR_INFO = {
+  mission: { title: '出撃ゲート', accent: '#ffb547' },
+  train: { title: '修行の間', accent: '#9be37a' },
+  dress: { title: '着せ替え', accent: '#ff8fc8' },
+  shop: { title: '道具屋', accent: '#ffd36b' },
+  book: { title: 'ネコ図鑑', accent: '#8fd3ec' }
+};
+const ROOM_SCREEN = { gate: 'mission', train: 'train', dress: 'dress', shop: 'shop', book: 'book' };
+function openScreen(kind) {
+  const info = SCR_INFO[kind];
+  SCR.kind = kind; SCR.pick = null; SCR.mission = null;
+  SCR.view = Math.max(0, CAT_IDS.indexOf(curCat()));
+  const el = $('#scr');
+  el.dataset.kind = kind; el.style.setProperty('--accent', info.accent);
+  $('#scrTitle').textContent = info.title;
+  el.hidden = false; document.body.classList.add('in-screen');
+  $('#banner').classList.remove('show');
+  keys.clear();
+  renderScreen();
+  $('#scrBack').focus();
+}
+function closeScreen() {
+  if (!SCR.kind) return;
+  SCR.kind = null; $('#scr').hidden = true; $('#scrPop').hidden = true;
+  document.body.classList.remove('in-screen');
+  pvHide(); refreshHud();
+}
+function renderScreen() {
+  $('#scrFish').textContent = state.nibosi;
+  const k = SCR.kind;
+  $('#scrPop').hidden = !SCR.mission;
+  if (k === 'mission') return renderMission();
+  if (k === 'dress') { renderDress(); const pk = $('#scrR .picker'); if (pk) pk.scrollIntoView({ block: 'nearest' }); return; }
+  if (k === 'train') return renderTrain();
+  if (k === 'shop') return renderShop();
+  if (k === 'book') return renderBook();
+}
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+function navHTML(name, sub, extra) {
+  return `<div class="pvnav"><button class="btn ghost nb" data-a="prev" aria-label="前へ">◀</button>
+    <div class="pvname"><b>${esc(name)}</b><small>${esc(sub || '')}</small></div>
+    <button class="btn ghost nb" data-a="next" aria-label="次へ">▶</button>${extra || ''}</div>`;
+}
+function statBox(label, v, nv) {
+  return `<div class="sbox"><small>${label}</small><b>${v}</b>${nv != null && nv !== v ? `<em>→ ${nv}</em>` : ''}</div>`;
+}
+
+/* ---------- 着せ替え ---------- */
+function renderDress() {
+  const id = CAT_IDS[SCR.view], open = catUnlocked(id), using = curCat() === id;
+  pvShow($('#pv'), id);
+  $('#scrLB').innerHTML = navHTML(open ? CATS[id].name : '？？？', open ? CATS[id].role : 'まだ仲間になっていない',
+    `<button class="btn setb" data-a="setcat" ${open && !using ? '' : 'disabled'}>${using ? '使用中' : 'セット'}</button>`);
+  const lv = lvOf(id), st = statsOf(id, lv), lo = state.loadout[id];
+  const sk = (sid) => skillById(id, sid);
+  const row = (slot, s, fixed) => `
+    <button class="wrow ${fixed ? 'fixed' : ''} ${SCR.pick === slot ? 'on' : ''}" ${fixed || !open ? 'disabled' : ''} data-a="pick" data-slot="${slot}">
+      <span class="wslot">${slot === 'N' ? '通常' : slot}</span>
+      <span class="wbody"><b>${esc(s.name)}</b><small>${esc(s.desc)}</small></span>
+      <span class="wmeta"><span>いりょく ${s.power}${s.hits > 1 ? '×' + s.hits : ''}</span><span>${slot === 'N' ? 'クールタイムなし' : fixed ? 'CT ?' : 'CT ' + skillCD(s) + '秒'}</span></span>
+    </button>`;
+  let picker = '';
+  if (SCR.pick) {
+    picker = `<div class="picker"><p class="ptitle">${SCR.pick}攻撃にセットするわざを選んでください</p>
+      ${SKILLS[id].map((s) => { const set = lo.B === s.id || lo.C === s.id;
+        return `<button class="prow ${set ? 'gray' : ''}" data-a="choose" data-id="${s.id}" ${set ? 'disabled' : ''}>
+          <b>${esc(s.name)}</b><span>いりょく ${s.power}${s.hits > 1 ? '×' + s.hits : ''} ・ CT ${skillCD(s)}秒</span><small>${set ? (lo.B === s.id ? 'B攻撃にセット中' : 'C攻撃にセット中') : esc(s.desc)}</small></button>`; }).join('')}
+      <button class="btn ghost" data-a="cancelpick">やめる</button></div>`;
+  }
+  $('#scrR').innerHTML = `
+    <div class="rhead"><span class="chip">${open ? CATS[id].role : '？？？'}</span><span class="lvtag">Lv <b>${open ? lv : '?'}</b></span>${using ? '<span class="chip on">使用中</span>' : ''}</div>
+    <div class="sgrid">${open ? statBox('HP', st.hp) + statBox('こうげき', st.atk) + statBox('ぼうぎょ', st.def) + statBox('すばやさ', st.spd)
+      : statBox('HP', '？') + statBox('こうげき', '？') + statBox('ぼうぎょ', '？') + statBox('すばやさ', '？')}</div>
+    <h3 class="rsub">わざ</h3>
+    <div class="wlist">
+      ${row('N', { name: 'ひっかく', desc: '正面をひっかく通常攻撃。全員共通で変えられない。', power: NORMAL_POWER, hits: 1 }, true)}
+      ${open ? row('B', sk(lo.B)) + row('C', sk(lo.C)) : row('B', { name: '？？？', desc: 'まだわからない', power: '?', hits: 1 }, true) + row('C', { name: '？？？', desc: 'まだわからない', power: '?', hits: 1 }, true)}
+    </div>
+    ${open ? '<p class="hint">B・Cをタップすると、4つの固有わざから入れかえられます。</p>' : '<p class="hint">仲間にすると、わざの入れかえやセットができます。</p>'}
+    ${picker}`;
+}
+/* ---------- 修行（レベルアップ） ---------- */
+function renderTrain() {
+  const id = CAT_IDS[SCR.view], open = catUnlocked(id);
+  pvShow($('#pv'), id);
+  $('#scrLB').innerHTML = navHTML(open ? CATS[id].name : '？？？', open ? `Lv ${lvOf(id)}` : 'まだ仲間になっていない');
+  if (!open) { $('#scrR').innerHTML = '<p class="lead">このネコはまだ仲間になっていません。仲間にすると修行できます。</p>'; return; }
+  const lv = lvOf(id), st = statsOf(id, lv), nx = statsOf(id, lv + 1), need = trainCost(lv);
+  state.paid = state.paid || {};
+  const paid = state.paid[id] || 0, rest = need - paid;
+  const ratio = paid / need;
+  $('#scrR').innerHTML = `
+    <div class="rhead"><span class="lvbig">Lv <b>${lv}</b></span><span class="chip">次のレベルまで ニボシ ${rest}</span></div>
+    <div class="meter" role="progressbar" aria-valuemin="0" aria-valuemax="${need}" aria-valuenow="${paid}"><i style="width:${(ratio * 100).toFixed(1)}%"></i><span>${paid} / ${need}</span></div>
+    <div class="mbtns">
+      <button class="btn ghost" data-a="pay" data-n="10" ${state.nibosi > 0 ? '' : 'disabled'}>ニボシを10入れる</button>
+      <button class="btn" data-a="pay" data-n="all" ${state.nibosi > 0 ? '' : 'disabled'}>ありったけ入れる</button>
+    </div>
+    <p class="hint">${state.nibosi > 0 ? '足りなくても入れた分はたまっていき、次のレベルまでの残りが減ります。' : 'ニボシがありません。ステージや広場で集めましょう。'}</p>
+    <h3 class="rsub">レベルアップ後</h3>
+    <div class="sgrid">${statBox('HP', st.hp, nx.hp)}${statBox('こうげき', st.atk, nx.atk)}${statBox('ぼうぎょ', st.def, nx.def)}${statBox('すばやさ', st.spd, nx.spd)}</div>`;
+}
+/* ---------- 道具屋 ---------- */
+function renderShop() {
+  const it = ITEMS[SCR.item], have = state.items[it.id] || 0, full = have >= it.max, poor = state.nibosi < it.price;
+  pvShow($('#pv'), it.id);
+  $('#scrLB').innerHTML = `<div class="iteminfo"><b>${esc(it.name)}</b><span class="chip">${esc(it.effect)}</span><small>${esc(it.desc)}</small>
+    <button class="btn buyb" data-a="buy" ${full || poor ? 'disabled' : ''}>${full ? '準備ずみ' : poor ? 'ニボシが足りない' : `ニボシ ${it.price} で準備する`}</button></div>`;
+  $('#scrR').innerHTML = `<p class="lead">店主のチャトラ「いらっしゃい。買った道具は、次の出撃で自動で効き目が出るよ」</p>
+    <div class="ilist">${ITEMS.map((x, i) => `
+      <button class="irow ${i === SCR.item ? 'on' : ''}" data-a="item" data-i="${i}">
+        <span class="ibody"><b>${esc(x.name)}</b><small>${esc(x.effect)}</small></span>
+        <span class="imeta"><span>ニボシ ${x.price}</span><span class="chip">準備 ${state.items[x.id] || 0} / ${x.max}</span></span>
+      </button>`).join('')}</div>
+    <p class="hint">効果はステージの最後まで続きます。クリアするとなくなり、やられたときやギブアップしたときはなくなりません。</p>`;
+}
+/* ---------- ネコ図鑑 ---------- */
+const BOOK = [
+  { id: 'noneko', model: 'noneko', name: 'ノネコ', cat: '仲間', open: () => true,
+    bg: '路地裏で生まれ育った野良ネコ。町のみんなに見守られて大きくなり、左耳の先の「さくらカット」はその証。いまはねこだまり基地をねぐらにしている。',
+    pers: '口が悪くて負けずぎらい。すぐにケンカを買うが、困っているネコを見ると放っておけないお人よし。猫界に名をとどろかせるのが夢。',
+    feat: 'キジトラ柄に強気なつり目、右目の上のキズと小さな牙。首に巻いたボロボロの赤いスカーフは、昔の相棒の形見らしい。' },
+  { id: 'alien', model: 'alien', name: 'エイリアンネコ', cat: '仲間', open: () => catUnlocked('alien'), hint: 'アンテナのような影。ある夜、空から落ちてきたネコらしい。' },
+  { id: 'bake', model: 'bake', name: 'バケネコ', cat: '仲間', open: () => catUnlocked('bake'), hint: 'しっぽが二本ある影。古い町に昔から住んでいるといううわさ。' },
+  { id: 'chatora', model: 'chatora', name: '店主のチャトラ', cat: '基地のネコ', open: () => true,
+    bg: 'ねこだまり基地で道具屋をいとなむ茶トラ。若いころは町じゅうを旅していたらしく、いまでも町のウワサが一番に集まる。',
+    pers: '世話好きでおしゃべり。ノネコのことを孫のように気にかけているが、お代はしっかりニボシでいただく。',
+    feat: 'ふっくらした体に大きな青い目。いつも青い前かけをしていて、カウンターの向こうでうたた寝していることが多い。' },
+  { id: 'rat', model: 'rat', name: 'ドブネズミ', cat: '敵', open: () => !!(state.seen || {}).rat, hint: '路地裏で物音がする…',
+    bg: '路地裏や下水道にすみつくネズミたち。最近、大ドブネズミの手下として町のネコたちにちょっかいを出している。',
+    pers: 'ずるがしこくて数で攻めるのが好き。一匹だと臆病だが、群れると急に強気になる。',
+    feat: '赤く光る目と大きな前歯。身構えてから飛びかかるくせがあるので、身構えたら横によければかわせる。' },
+  { id: 'boss', model: 'boss', name: '大ドブネズミ', cat: '小ボス', open: () => !!(state.seen || {}).boss, hint: '下水道の奥にいるらしい。',
+    bg: '下水道をナワバリにする大きなネズミ。ドブネズミたちを子分にして、町の食べ物を集めさせている。',
+    pers: 'いばりんぼうで見栄っぱり。自分より大きな者には頭が上がらないといううわさも。',
+    feat: 'ビンのふたで作った王冠と眼帯がじまん。突進のあとは目を回してスキだらけになる。' },
+  { id: 'deep', model: 'shadowRat', name: '？？？', cat: 'ボス', open: () => false, hint: '下水道のさらに奥から、地鳴りのような鳴き声がする…' }
+];
+function renderBook() {
+  const e = BOOK[SCR.book], open = e.open();
+  pvShow($('#pv'), open || e.id === 'noneko' ? e.model : (e.model === 'rat' || e.model === 'boss' ? 'shadowRat' : e.model));
+  $('#scrLB').innerHTML = navHTML(open ? e.name : '？？？', `${SCR.book + 1} / ${BOOK.length}`);
+  $('#scrR').innerHTML = open ? `
+    <div class="rhead"><span class="bname">${esc(e.name)}</span><span class="chip">${esc(e.cat)}</span></div>
+    <h3 class="rsub">背景</h3><p class="btext">${esc(e.bg)}</p>
+    <h3 class="rsub">性格</h3><p class="btext">${esc(e.pers)}</p>
+    <h3 class="rsub">特徴</h3><p class="btext">${esc(e.feat)}</p>` : `
+    <div class="rhead"><span class="bname">？？？</span><span class="chip">${esc(e.cat)}</span></div>
+    <p class="btext">${esc(e.hint || 'まだ見つけていない。')}</p>
+    <p class="hint">${e.cat === '仲間' ? '仲間にすると、くわしいことがわかります。' : '出会うと、くわしいことが記録されます。'}</p>`;
+}
+/* ---------- ミッション ---------- */
+const MISSIONS = [
+  { id: 'm1', type: 'main', ch: 1, title: '下水道の大ドブネズミ', goal: '下水道の奥にいる大ドブネズミを倒せ！', place: '基地の裏の路地裏 → 下水道', rank: '-', time: 'なし',
+    reward: () => (state.cleared1 ? 'ニボシ 30' : 'ニボシ 100'), rec: 3, play: true,
+    desc: '道具屋のチャトラから聞いたウワサの大ドブネズミ。路地裏をぬけて下水道の奥へ乗りこみ、ノネコの名を猫界にとどろかせろ！', open: () => true, done: () => !!state.cleared1 },
+  { id: 's1', type: 'mini', ch: 1, title: 'チャトラのおつかい', goal: '路地裏に落ちたニボシを集めろ', place: '基地の裏の路地裏', rank: '-', time: '5:00', reward: () => 'カリカリ 1', rec: 2, play: false,
+    desc: 'チャトラが仕入れのとちゅうでニボシの袋をやぶいてしまった。路地裏じゅうに散らばったニボシを集めてあげよう。', open: () => !!state.cleared1, done: () => false },
+  { id: 's2', type: 'mini', ch: 1, title: '迷子の子ネコをさがせ', goal: '下水道で迷子になった子ネコを見つけろ', place: '下水道', rank: '-', time: '8:00', reward: () => 'ニボシ 60', rec: 4, play: false,
+    desc: '大ドブネズミがいなくなった下水道で、子ネコの鳴き声がするらしい。暗い分かれ道を一つずつ調べよう。', open: () => !!state.cleared1, done: () => false },
+  { id: 'm2', type: 'main', ch: 2, title: '？？？', goal: '？？？', place: '？？？', rank: '-', time: '-', reward: () => '-', rec: 6, play: false,
+    desc: '下水道のさらに奥から聞こえた不気味な鳴き声。その正体とは…', open: () => false, done: () => false }
+];
+function renderMission() {
+  const nodes = MISSIONS.map((m, i) => {
+    const open = m.open(), done = m.done();
+    const tag = !open ? '' : done ? '<span class="ntag done">クリア</span>' : m.play ? '<span class="ntag new">NEW!!</span>' : '<span class="ntag soon">準備中</span>';
+    return `<button class="mnode ${m.type} ${open ? '' : 'locked'}" data-a="mission" data-i="${i}" ${open ? '' : 'disabled'} style="--i:${i}">
+      ${tag}<span class="mball">${m.type === 'main' ? 'メイン' : 'ミニ'}</span><span class="mlabel">${open ? esc(m.title) : '？？？'}</span></button>`;
+  }).join('');
+  $('#scrR').innerHTML = `<div class="mhead"><span class="chip">第1話</span><b>下水道の大ドブネズミ</b></div>
+    <div class="mtrack"><div class="mroad"></div>${nodes}</div>
+    <p class="hint">ミッションを選ぶと、くわしい内容を確認して出動できます。ミニストーリーは第1話クリア後に増えていきます。</p>`;
+  if (SCR.mission) renderMissionPop();
+}
+function renderMissionPop() {
+  const m = SCR.mission;
+  const pop = $('#scrPop'); pop.hidden = false;
+  pop.innerHTML = `<div class="mcard" role="dialog" aria-labelledby="mcTitle">
+    <div class="mctop"><span class="mctype ${m.type}">${m.type === 'main' ? 'メイン' : 'ミニ'}</span><b id="mcTitle">${esc(m.title)}</b><span class="mcrec"><small>おすすめレベル</small><b>Lv ${m.rec}</b></span></div>
+    <div class="mcbody">
+      <canvas class="mcmap" width="240" height="160" aria-label="ミッションの地図"></canvas>
+      <dl class="mcdl">
+        <dt>もくてき</dt><dd>${esc(m.goal)}</dd>
+        <dt>ばしょ</dt><dd>${esc(m.place)}</dd>
+        <div class="mcrow"><span><small>ランク</small><b>${m.rank}</b></span><span><small>制限時間</small><b>${m.time}</b></span><span><small>クリア報酬</small><b>${esc(m.reward())}</b></span></div>
+      </dl>
+    </div>
+    <p class="mcdesc">${esc(m.desc)}</p>
+    <div class="mcbtns"><button class="btn ghost" data-a="closepop">もどる</button><button class="btn go" data-a="go" ${m.play ? '' : 'disabled'}>${m.play ? '出動する！' : '準備中'}</button></div>
+  </div>`;
+  // 小さな地図（路地裏→下水道の道すじ）
+  const c = pop.querySelector('.mcmap'), g = c.getContext('2d');
+  g.fillStyle = '#1d1834'; g.fillRect(0, 0, 240, 160);
+  const draw = (path, ox, col, sx, sz) => { g.strokeStyle = col; g.lineWidth = 6; g.lineJoin = g.lineCap = 'round'; g.beginPath();
+    path.forEach((p, i) => { const x = ox + p.x * sx, y = 14 + -p.z * sz; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); };
+  draw(AREA_DEF.alley.path, 60, '#7a6fa0', 1.6, 1.05);
+  draw(AREA_DEF.sewer.path, 170, '#6f9a84', 1.6, 0.7);
+  g.fillStyle = '#ff6a4d'; g.beginPath(); g.arc(170, 14 + 174 * 0.7 > 150 ? 146 : 14 + 174 * 0.7, 7, 0, Math.PI * 2); g.fill();
+  g.fillStyle = '#ffb547'; g.beginPath(); g.arc(60, 14 - 6 * 1.05 + 8, 5, 0, Math.PI * 2); g.fill();
+  g.font = '800 11px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#b9b0d6'; g.fillText('路地裏', 34, 154); g.fillText('下水道', 150, 154);
+  if (!m.play) { g.fillStyle = 'rgba(13,10,26,.7)'; g.fillRect(0, 0, 240, 160); g.fillStyle = '#b9b0d6'; g.font = '800 16px "M PLUS Rounded 1c", sans-serif'; g.fillText('準備中', 96, 86); }
+}
+
+/* ---------- 画面の操作 ---------- */
+$('#scrBack').addEventListener('click', () => { if (SCR.mission) { SCR.mission = null; $('#scrPop').hidden = true; } else closeScreen(); });
+$('#scr').addEventListener('click', (e) => {
+  if (e.target.id === 'scrPop') { SCR.mission = null; renderScreen(); return; }
+  const b = e.target.closest('[data-a]'); if (!b || b.disabled) return;
+  const a = b.dataset.a, k = SCR.kind;
+  const n = k === 'book' ? BOOK.length : CAT_IDS.length;
+  if (a === 'prev' || a === 'next') {
+    const d = a === 'prev' ? -1 : 1;
+    if (k === 'book') SCR.book = (SCR.book + d + n) % n; else SCR.view = (SCR.view + d + n) % n;
+    SCR.pick = null;
+  } else if (a === 'setcat') {
+    state.cat = CAT_IDS[SCR.view]; save(); toast(`${CATS[state.cat].name}をセットした`);
+  } else if (a === 'pick') {
+    SCR.pick = SCR.pick === b.dataset.slot ? null : b.dataset.slot;
+  } else if (a === 'cancelpick') {
+    SCR.pick = null;
+  } else if (a === 'choose') {
+    const id = CAT_IDS[SCR.view];
+    state.loadout[id][SCR.pick] = b.dataset.id; save();
+    toast(`${SCR.pick}攻撃に「${skillById(id, b.dataset.id).name}」をセット`);
+    SCR.pick = null;
+  } else if (a === 'pay') {
+    const id = CAT_IDS[SCR.view], lv = lvOf(id), need = trainCost(lv);
+    state.paid = state.paid || {};
+    const paid = state.paid[id] || 0;
+    const want = b.dataset.n === 'all' ? need - paid : Math.min(10, need - paid);
+    const put = Math.min(want, state.nibosi);
+    if (put <= 0) return;
+    state.nibosi -= put; state.paid[id] = paid + put;
+    if (state.paid[id] >= need) {
+      state.paid[id] = 0; setLv(id, lv + 1);
+      toast(`レベルが ${lv + 1} になった！`); pvPose('attack');
+      const bag = ROOMS[1].group.userData.bag; if (bag) bag.userData.hit = 1.2;
+    }
+    save(); refreshHud();
+  } else if (a === 'item') {
+    SCR.item = +b.dataset.i;
+  } else if (a === 'buy') {
+    const it = ITEMS[SCR.item];
+    if (state.nibosi < it.price || (state.items[it.id] || 0) >= it.max) return;
+    state.nibosi -= it.price; state.items[it.id] = (state.items[it.id] || 0) + 1; save(); refreshHud();
+    toast(`${it.name}を準備した（次の出撃で使われます）`);
+  } else if (a === 'mission') {
+    SCR.mission = MISSIONS[+b.dataset.i];
+  } else if (a === 'closepop') {
+    SCR.mission = null;
+  } else if (a === 'go') {
+    closeScreen(); departMovie(); return;
+  }
+  renderScreen();
+});
 
 /* ================= キャラ閲覧モード ================= */
 const viewer = { on: false, yaw: 0, dist: 3.1, spin: false, pose: 'idle', drag: null, pinch: null, pts: new Map() };
@@ -2638,9 +3062,9 @@ const CATS = { noneko: { name: 'ノネコ', role: 'アタッカー' }, alien: { 
 const skillCD = (sk) => Math.round(THREE.MathUtils.clamp(2 + sk.power * sk.hits / 25 + sk.util, 3, 10) * 2) / 2;
 const skillById = (cat, id) => SKILLS[cat].find((k) => k.id === id);
 state.loadout = Object.assign({ noneko: { B: 'pounce', C: 'spin' }, alien: { B: 'beam', C: 'ufo' }, bake: { B: 'hitodama', C: 'futamata' } }, state.loadout || {});
-const curCat = () => 'noneko';
+const curCat = () => state.cat || 'noneko';
 function slotSkill(slot) { return skillById(curCat(), state.loadout[curCat()][slot]); }
-function battleAtk() { return stats(state.lv).atk + (mode === 'stage' && S.items && S.items.tsume ? 5 : 0); }
+function battleAtk() { return curStats().atk + (mode === 'stage' && S.items && S.items.tsume ? 5 : 0); }
 function calcDmg(power, e) {
   const st = { atk: battleAtk() };
   const crit = Math.random() < 0.12;
@@ -2838,7 +3262,7 @@ function resolvePlayerHit() {
 }
 function damagePlayer(raw, sx, sz, kb) {
   if (S.inv > 0 || ps.invul > 0 || S.over) return;
-  const st = stats(state.lv);
+  const st = curStats();
   const dmg = Math.max(1, Math.round(raw - st.def * 0.4));
   S.hp = Math.max(0, S.hp - dmg); S.inv = 0.9;
   popNum(ps.x, 1.8, ps.z, String(dmg), 'hurt');
@@ -2977,7 +3401,7 @@ function clearEntities() {
 }
 function resetStage(areaKey) {
   closePanel();
-  const st = stats(state.lv);
+  const st = curStats();
   S.hp = S.maxHp = st.hp; S.inv = 0; S.shake = 0;
   S.over = false; S.defeat = false; S.cleared = false; S.loading = false; S.darkT = 0;
   if (!areaKey) { S.stats = { kills: 0, nibosi: 0 }; S.said = {}; }
@@ -3247,7 +3671,7 @@ function step() {
   const dt = Math.min(clock.getDelta(), 0.05);
   worldT += dt;
   const stage = mode === 'stage';
-  const inUI = !$('#panel').hidden || dlg.active || cine.active || (stage && S.loading);
+  const inUI = !$('#panel').hidden || !!SCR.kind || dlg.active || cine.active || (stage && S.loading);
   const canMove = !viewer.on && !inUI && !(stage && S.over);
   let kx = 0, kz = 0;
   if (canMove) {
@@ -3374,7 +3798,7 @@ function step() {
 
   mmTimer -= dt;
   if (mmTimer <= 0 && !viewer.on) { stage ? drawStageMap() : drawMinimap(); mmTimer = 0.1; }
-  renderer.render(scene, camera);
+  if (SCR.kind) pvRender(dt); else renderer.render(scene, camera);
   requestAnimationFrame(step);
 }
 
