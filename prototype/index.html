@@ -244,11 +244,10 @@ button:focus-visible { outline: 3px solid var(--fish); outline-offset: 2px; }
   #vctrl .btn { padding: 6px 10px; font-size: 12px; white-space: nowrap; flex: none; }
 }
 /* ---------- ステージ ---------- */
-#btnMenu, #btnItem, .skillbtn { display: none; }
+#btnMenu, .skillbtn { display: none; }
 body.in-stage .skillbtn { display: grid; }
 body.in-stage #btnView { display: none; }
 body.in-stage #btnMenu { display: block; }
-body.in-stage #btnItem { display: block; }
 #btnMenu { font-size: 13px; padding: 8px 12px; }
 body.in-stage #btnAct { background: var(--ember); font-family: var(--display); font-weight: 400; font-size: 18px; min-width: 104px; height: 104px; border-radius: 52px; }
 /* 右下：ひっかく（大）、その左にB、上にC、斜め左上にカリカリ */
@@ -263,11 +262,6 @@ body.in-stage #btnAct { background: var(--ember); font-family: var(--display); f
 .skillbtn.cooling .sn, .skillbtn.cooling .slot { opacity: .5; }
 #btnB { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 116px); bottom: calc(26px + env(safe-area-inset-bottom, 0px)); }
 #btnC { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 13px); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
-#btnItem {
-  position: absolute; right: calc(max(18px, env(safe-area-inset-right, 0px)) + 112px); bottom: calc(122px + env(safe-area-inset-bottom, 0px));
-  width: 70px; height: 70px; border-radius: 35px; padding: 0; font-size: 12px; line-height: 1.1;
-}
-#btnItem small { font-size: 12px; color: var(--leaf); }
 .hptext { display: block; font-size: 11px; font-weight: 800; color: var(--muted); font-variant-numeric: tabular-nums; margin-top: 2px; }
 .hptext:empty { display: none; }
 #bossBar {
@@ -303,7 +297,6 @@ body.in-stage #banner { top: calc(84px + env(safe-area-inset-top, 0px)); }
 @media (prefers-reduced-motion: reduce) { .dnext { animation: none; } .bbar i { transition: none; } }
 @media (orientation: landscape) and (max-height: 520px) {
   body.in-stage #btnAct { min-width: 84px; height: 84px; border-radius: 42px; font-size: 15px; }
-  #btnItem { right: calc(max(22px, calc(env(safe-area-inset-right, 0px) + 8px)) + 88px); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: 50px; height: 50px; font-size: 10px; }
   .skillbtn { width: 62px; height: 62px; font-size: 10px; }
   .skillbtn .slot { top: 5px; font-size: 11px; }
   .skillbtn .cdn { font-size: 20px; }
@@ -368,7 +361,7 @@ body.cine #hud, body.cine #banner, body.cine #toast { display: none; }
         <img id="portrait" class="portrait" alt="ノネコの顔">
         <div style="min-width:0">
           <div class="pname">ノネコ <span class="lv">Lv <b id="lv">1</b></span></div>
-          <div class="hp" aria-label="HP"><i></i></div><small id="hpText" class="hptext"></small>
+          <div class="hp" aria-label="HP"><i></i></div><small id="hpText" class="hptext"></small><small id="buffs" class="hptext"></small>
           <div class="fishline">
             <svg viewBox="0 0 22 12" aria-hidden="true"><path d="M1 6c3-5 10-6 15-1l5-4v10l-5-4C11 12 4 11 1 6z" fill="#8fd3ec" stroke="#0d0a1a" stroke-width="1.5"/><circle cx="5" cy="5" r="1.2" fill="#0d0a1a"/></svg>
             <span><b id="nibosi">0</b> ニボシ</span>
@@ -383,7 +376,6 @@ body.cine #hud, body.cine #banner, body.cine #toast { display: none; }
     </header>
     <div id="joy" aria-hidden="true"><div id="joyBase"></div><div id="joyKnob"></div><span id="joyTag">ダッシュ</span></div>
     <button id="btnAct" class="btn" disabled>調べる</button>
-    <button id="btnItem" class="btn ghost">カリカリ</button>
     <button id="btnB" class="btn skillbtn" aria-label="B攻撃"><span class="slot">B</span><span class="sn"></span><span class="cdn"></span></button>
     <button id="btnC" class="btn skillbtn" aria-label="C攻撃"><span class="slot">C</span><span class="sn"></span><span class="cdn"></span></button>
     <div id="bossBar" class="chunky" hidden><b>大ドブネズミ</b><div class="bbar"><i></i></div></div>
@@ -1411,7 +1403,6 @@ window.addEventListener('keydown', (e) => {
     if (!$('#panel').hidden) { if (e.code === 'Escape' && !$('#panel').dataset.lock) closePanel(); return; }
     if (e.code === 'Escape') openMenu();
     else if (e.code === 'Space' || e.code === 'KeyJ' || e.code === 'Enter') { e.preventDefault(); playerAttack(); }
-    else if (e.code === 'KeyQ') useItem();
     else if (e.code === 'KeyK') useSkill('B');
     else if (e.code === 'KeyL') useSkill('C');
     return;
@@ -1474,14 +1465,15 @@ function setRoom(r) {
 }
 function setHint() {
   $('#hint').innerHTML = mode === 'stage'
-    ? '<kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 走る　<kbd>Space</kbd>・クリック ひっかく　<kbd>K</kbd> B攻撃　<kbd>L</kbd> C攻撃　<kbd>Q</kbd> カリカリ　ドラッグ 視点　<kbd>Esc</kbd> メニュー'
+    ? '<kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 走る　<kbd>Space</kbd>・クリック ひっかく　<kbd>K</kbd> B攻撃　<kbd>L</kbd> C攻撃　ドラッグ 視点　<kbd>Esc</kbd> メニュー'
     : '<kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 走る　<kbd>E</kbd> 部屋を開く　ドラッグ 視点　<kbd>Esc</kbd> 閉じる';
 }
 
+// 道具：買っておくと次の出撃で自動で効果が出る。クリアすると消費、失敗・ギブアップでは消えない
 const ITEMS = [
-  { id: 'kari', name: 'カリカリ', desc: 'バトル中にHPを40回復', price: 15 },
-  { id: 'mata', name: 'マタタビ玉', desc: '必殺技ゲージを半分ためる', price: 40 },
-  { id: 'tsume', name: '爪とぎ石', desc: '1回のバトルのあいだ攻撃+5', price: 30 }
+  { id: 'kari', name: 'カリカリ', desc: 'HPが3割を切ると自動で40回復（1個につき1回）', price: 15, max: 3 },
+  { id: 'mata', name: 'マタタビ玉', desc: 'B攻撃・C攻撃のクールタイムが20%短くなる', price: 40, max: 1 },
+  { id: 'tsume', name: '爪とぎ石', desc: '攻撃力が+5される', price: 30, max: 1 }
 ];
 function statCell(label, v, nv) { return `<div class="stat"><small>${label}</small><b>${v}</b>${nv != null ? `<em>→ ${nv}</em>` : ''}</div>`; }
 function skillSetHTML(cat) {
@@ -1523,10 +1515,10 @@ const PANELS = {
   shop: () => `
     <p class="lead">店主のチャトラ「いらっしゃい。ニボシで払っておくれ」</p>
     <ul class="list">${ITEMS.map((it) => `
-      <li class="row"><div><b>${it.name}　<span class="chip">所持 ${state.items[it.id] || 0}</span></b><small>${it.desc}</small></div>
-      <button class="btn" data-act="buy" data-id="${it.id}" ${state.nibosi >= it.price ? '' : 'disabled'}>ニボシ ${it.price}</button></li>`).join('')}
+      <li class="row"><div><b>${it.name}　<span class="chip">準備 ${state.items[it.id] || 0} / ${it.max}</span></b><small>${it.desc}</small></div>
+      <button class="btn" data-act="buy" data-id="${it.id}" ${state.nibosi >= it.price && (state.items[it.id] || 0) < it.max ? '' : 'disabled'}>${(state.items[it.id] || 0) >= it.max ? '準備ずみ' : 'ニボシ ' + it.price}</button></li>`).join('')}
     </ul>
-    <p class="note">カリカリはステージ中に使えます。マタタビ玉と爪とぎ石の効果は今後実装します。</p>`,
+    <p class="note">買った道具は次の出撃で自動で効果が出ます（効果はステージの最後まで続きます）。ステージをクリアするとなくなり、やられたときやギブアップしたときはなくなりません。</p>`,
   book: () => `
     <ul class="list">
       <li class="row"><div><b>ノネコ <span class="chip">仲間</span></b>
@@ -1566,9 +1558,9 @@ $('#panel').addEventListener('click', (e) => {
     $('#pBody').innerHTML = PANELS.train();
   } else if (act === 'buy') {
     const it = ITEMS.find((i) => i.id === b.dataset.id);
-    if (!it || state.nibosi < it.price) return;
+    if (!it || state.nibosi < it.price || (state.items[it.id] || 0) >= it.max) return;
     state.nibosi -= it.price; state.items[it.id] = (state.items[it.id] || 0) + 1; save(); refreshHud();
-    toast(`${it.name}を買った`);
+    toast(`${it.name}を準備した（次の出撃で使われます）`);
     $('#pBody').innerHTML = PANELS.shop();
   } else if (act === 'view') {
     closePanel(); openViewer();
@@ -1592,7 +1584,6 @@ $('#panel').addEventListener('click', (e) => {
 });
 $('#btnAct').addEventListener('click', () => { if (mode === 'home' && curRoom) openPanel(curRoom); });
 $('#btnAct').addEventListener('pointerdown', (e) => { if (mode === 'stage') { e.preventDefault(); playerAttack(); } });
-$('#btnItem').addEventListener('click', useItem);
 $('#btnB').addEventListener('pointerdown', (e) => { e.preventDefault(); useSkill('B'); });
 $('#btnC').addEventListener('pointerdown', (e) => { e.preventDefault(); useSkill('C'); });
 $('#btnMenu').addEventListener('click', openMenu);
@@ -2371,7 +2362,7 @@ function updateDrops(dt) {
     const dx = ps.x - d.x, dz = ps.z - d.z, dist = Math.hypot(dx, dz);
     if (d.t > 0.45 && dist < 2.6 && !S.over) { d.x += dx / dist * 9 * dt; d.z += dz / dist * 9 * dt; }
     if (d.t > 0.45 && dist < 0.7 && !S.defeat) {
-      if (d.kind === 'kari') { state.items.kari = (state.items.kari || 0) + 1; save(); refreshItemBtn(); popNum(ps.x, 1.8, ps.z, 'カリカリ +1', 'heal'); }
+      if (d.kind === 'kari') { const heal = Math.min(40, S.maxHp - S.hp); S.hp += heal; updateHpBar(); popNum(ps.x, 1.8, ps.z, 'カリカリ +' + heal, 'heal'); }
       else { state.nibosi += d.val; S.stats.nibosi += d.val; save(); refreshHud(); popNum(ps.x, 1.6, ps.z, '+' + d.val, 'fish'); }
       S.ents.remove(d.g); S.drops.splice(i, 1); continue;
     }
@@ -2649,8 +2640,9 @@ const skillById = (cat, id) => SKILLS[cat].find((k) => k.id === id);
 state.loadout = Object.assign({ noneko: { B: 'pounce', C: 'spin' }, alien: { B: 'beam', C: 'ufo' }, bake: { B: 'hitodama', C: 'futamata' } }, state.loadout || {});
 const curCat = () => 'noneko';
 function slotSkill(slot) { return skillById(curCat(), state.loadout[curCat()][slot]); }
+function battleAtk() { return stats(state.lv).atk + (mode === 'stage' && S.items && S.items.tsume ? 5 : 0); }
 function calcDmg(power, e) {
-  const st = stats(state.lv);
+  const st = { atk: battleAtk() };
   const crit = Math.random() < 0.12;
   const dmg = Math.max(1, Math.round(st.atk * power / 40 * (0.9 + Math.random() * 0.2) * (crit ? 1.6 : 1) * (e.boss && e.state === 'stun' ? 1.3 : 1)));
   return { dmg, crit };
@@ -2691,7 +2683,8 @@ function ringFx(x, z, r, color, dur) {
 function arcFx(len, color) {
   const g = new THREE.Group(); g.position.set(ps.x, 0.9, ps.z); g.rotation.y = ps.yaw; S.ents.add(g);
   const m = new THREE.Mesh(new THREE.RingGeometry(len - 0.5, len, 40, 1, Math.PI * 0.15, Math.PI * 0.7), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
-  m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.PI / 2; g.add(m);
+  // 輪の弧（XY平面の +Y 側）を、X軸まわりに +90° 回して正面（+Z）に向ける
+  m.rotation.x = Math.PI / 2; g.add(m);
   S.fx.push({ m: g, mat: m.material, t: 0, dur: 0.45, grow: true });
 }
 function updateFx(dt) {
@@ -2731,7 +2724,7 @@ function useSkill(slot) {
   const sk = slotSkill(slot);
   const tg = nearestTarget(sk.type === 'dash' ? 6 : 4);
   if (tg) ps.yaw = Math.atan2(tg.x - ps.x, tg.z - ps.z);
-  ps.cd[slot] = ps.cdMax[slot] = skillCD(sk);
+  ps.cd[slot] = ps.cdMax[slot] = skillCD(sk) * (S.items && S.items.mata ? 0.8 : 1);
   ps.skill = { sk, t: 0, once: new Set(), step: 0 };
   ps.mode = 'idle'; ps.queued = false;
   popNum(ps.x, 2.3, ps.z, sk.name, 'skill');
@@ -2853,6 +2846,13 @@ function damagePlayer(raw, sx, sz, kb) {
   const dx = ps.x - sx, dz = ps.z - sz, d = Math.hypot(dx, dz) || 1;
   ps.kx = dx / d * (kb || 6); ps.kz = dz / d * (kb || 6);
   updateHpBar();
+  // カリカリ：HPが3割を切ったら自動で回復
+  if (S.hp > 0 && S.hp < S.maxHp * 0.3 && S.items.kari > 0) {
+    S.items.kari--;
+    const heal = Math.min(40, S.maxHp - S.hp); S.hp += heal;
+    setTimeout(() => popNum(ps.x, 2.0, ps.z, 'カリカリ +' + heal, 'heal'), 250);
+    updateHpBar(); refreshItemBtn();
+  }
   if (S.hp <= 0) playerDown();
 }
 function updateHpBar() {
@@ -2862,22 +2862,21 @@ function updateHpBar() {
   bar.style.background = r < 0.3 ? 'linear-gradient(#ff8a6a,#e5483a)' : '';
   $('#hpText').textContent = mode === 'stage' ? `${S.hp} / ${S.maxHp}` : '';
 }
-function useItem() {
-  if (mode !== 'stage' || S.over || dlg.active) return;
-  if (!(state.items.kari > 0)) { toast('カリカリを持っていません'); return; }
-  if (S.hp >= S.maxHp) { toast('HPは満タンです'); return; }
-  state.items.kari--; save();
-  const heal = Math.min(40, S.maxHp - S.hp); S.hp += heal;
-  popNum(ps.x, 1.8, ps.z, '+' + heal, 'heal');
-  updateHpBar(); refreshItemBtn();
+// 出撃中の道具の表示（HPの下）
+function refreshItemBtn() {
+  const it = S.items || {};
+  const parts = [];
+  if (it.kari) parts.push(`カリカリ×${it.kari}`);
+  if (it.mata) parts.push('マタタビ玉');
+  if (it.tsume) parts.push('爪とぎ石');
+  $('#buffs').textContent = mode === 'stage' && parts.length ? '道具：' + parts.join('・') : '';
 }
-function refreshItemBtn() { $('#btnItem').innerHTML = `カリカリ<br><small>×${state.items.kari || 0}</small>`; }
 function playerDown() {
   S.over = true; S.defeat = true;
   clearTeles();
   setTimeout(() => openInfo({
     kicker: 'GAME OVER', title: 'やられた…', accent: '#ff6a4d', noClose: true,
-    html: `<p class="lead">ノネコは力つきてしまった。修行の間でレベルを上げたり、道具屋でカリカリを買ってから再挑戦しよう。</p>
+    html: `<p class="lead">ノネコは力つきてしまった。修行の間でレベルを上げたり、道具屋で道具を準備してから再挑戦しよう。準備した道具はなくなっていません。</p>
       <p class="note">倒したドブネズミ ${S.stats.kills}匹 ／ 拾ったニボシ ${S.stats.nibosi}</p>
       <div class="actions"><button class="btn" data-act="retryArea">この場所からやり直す</button><button class="btn ghost" data-act="retry">最初からやり直す</button><button class="btn ghost" data-act="home">基地にもどる</button></div>`
   }), 1300);
@@ -2885,7 +2884,9 @@ function playerDown() {
 function showClear() {
   const first = !state.cleared1;
   const bonus = first ? 100 : 30;
-  state.cleared1 = true; state.nibosi += bonus; save(); refreshHud();
+  state.cleared1 = true; state.nibosi += bonus;
+  const used = ITEMS.filter((i) => state.items[i.id]).map((i) => i.name);
+  state.items = { kari: 0, mata: 0, tsume: 0 }; save(); refreshHud(); refreshItemBtn();
   openInfo({
     kicker: 'STAGE CLEAR', title: '第1話 クリア！', accent: '#ffb547', noClose: true,
     html: `<div class="statgrid">
@@ -2894,6 +2895,7 @@ function showClear() {
         <div class="stat"><small>クリアボーナス</small><b>${bonus}</b></div>
         <div class="stat"><small>残りHP</small><b>${S.hp}</b></div></div>
       <p class="lead">大ドブネズミを倒し、ノネコの名が路地裏に広まりはじめた。${first ? 'ネコ図鑑に記録が増えました。' : ''}</p>
+      ${used.length ? `<p class="note">使った道具：${used.join('・')}（クリアしたのでなくなりました）</p>` : ''}
       <div class="actions"><button class="btn" data-act="home">基地にもどる</button><button class="btn ghost" data-act="retry">もう一度遊ぶ</button></div>`
   });
 }
@@ -2982,6 +2984,7 @@ function resetStage(areaKey) {
   player.root.rotation.x = 0; player.root.visible = true;
   cam.yaw = 0; cam.elev = CAM_ELEV;
   ps.cd = { B: 0, C: 0 }; ps.skill = null; ps.spinA = 0; ps.invul = 0; cdUI.B = cdUI.C = -1;
+  S.items = Object.assign({ kari: 0, mata: 0, tsume: 0 }, state.items); // やり直すたびに準備した道具がそろった状態に戻る
   loadArea(areaKey || 'alley');
   $('#dark').style.opacity = '0';
   updateHpBar(); refreshItemBtn(); refreshSkillBtns();
@@ -3001,7 +3004,7 @@ function exitStage() {
   player.root.rotation.x = 0; player.root.visible = true;
   cam.yaw = 0;
   curRoom = undefined; setRoom(null);
-  updateHpBar(); refreshHud(); setHint();
+  updateHpBar(); refreshHud(); setHint(); refreshItemBtn();
 }
 function updateStage(dt, paused) {
   for (const f of S.animated) f(dt, worldT);
@@ -3391,7 +3394,7 @@ function start() {
     $('#loading').classList.add('done');
     banner('ねこだまり基地', '路地裏にあるノネコたちの隠れ家', '#ffb547', 'HOME');
     requestAnimationFrame(step);
-    window.__nk = { useSkill, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goSewer, get ARENA() { return ARENA; } };
+    window.__nk = { useSkill, damagePlayer, exitStage, state, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goSewer, get ARENA() { return ARENA; } };
   } catch (err) {
     console.error(err);
     $('#loadMsg').className = 'err';
