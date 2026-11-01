@@ -417,10 +417,13 @@ body.in-screen #hud, body.in-screen #banner { display: none; }
 .btext { margin: 0; font-size: 13.5px; line-height: 1.75; }
 .mhead { display: flex; align-items: center; gap: 8px; }
 .mhead b { font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--accent); }
-.mtrack { position: relative; height: 190px; margin-top: 10px; overflow-x: auto; overflow-y: hidden; }
-.mtrack::after { content: ""; position: absolute; left: calc(4 * 170px + 30px); top: 0; width: 1px; height: 1px; }
-.mroad { position: absolute; left: 70px; top: 60px; height: 12px; width: calc(3 * 170px); background: #ff8fc8; border: 3px solid var(--line); border-radius: 8px; }
-.mnode { position: absolute; top: 14px; left: calc(14px + var(--i) * 170px); width: 152px; display: grid; justify-items: center; gap: 6px;
+.mtrack { position: relative; flex: 1; min-height: 0; margin-top: 10px; overflow: auto; overscroll-behavior: contain; }
+.mcanvas { position: relative; }
+#scr[data-kind="mission"] .scr-r { display: flex; flex-direction: column; }
+.mroad { position: absolute; background: #ff8fc8; border: 3px solid var(--line); border-radius: 8px; }
+.mroad.h { height: 12px; }
+.mroad.v { width: 12px; background: #8fd3ec; }
+.mnode { position: absolute; width: 152px; display: grid; justify-items: center; gap: 6px;
   background: none; border: 0; padding: 0; color: var(--ink); cursor: pointer; font-family: var(--body); }
 .mball { width: 96px; height: 96px; border-radius: 50%; display: grid; place-items: center; font-family: var(--display); font-weight: 400; font-size: 16px;
   border: 4px solid var(--line); box-shadow: 0 4px 0 var(--line); background: var(--lantern); color: var(--line); }
@@ -467,7 +470,6 @@ body.in-screen #hud, body.in-screen #banner { display: none; }
   .sbox b { font-size: 15px; }
   .wslot { width: 34px; height: 34px; font-size: 12px; }
   .wrow, .prow, .irow { padding: 6px 8px; }
-  .mtrack { height: 170px; }
   .mcbody { grid-template-columns: 150px minmax(0, 1fr); padding: 8px; gap: 8px; }
   .mcdesc { font-size: 12.5px; padding: 6px 10px; }
   .mcdl dd { font-size: 12.5px; }
@@ -475,6 +477,16 @@ body.in-screen #hud, body.in-screen #banner { display: none; }
   #mcTitle { font-size: 16px; }
   .mcbtns { padding: 6px 10px; }
 }
+@media (orientation: landscape) and (max-height: 520px) {
+  #scr[data-kind="shop"] .pv { min-height: 70px; }
+  .iteminfo { gap: 2px; }
+  .iteminfo b { font-size: 16px; }
+  .iteminfo small { font-size: 11px; line-height: 1.4; }
+  .iteminfo .chip { font-size: 10px; }
+  .buyb { padding: 7px 10px; font-size: 13px; margin-top: 2px; }
+  .ilist { gap: 4px; }
+}
+.scr-l { overflow-y: auto; }
 @media (max-width: 640px) and (orientation: portrait) {
   .scr-b { grid-template-columns: minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); }
   .pv { flex: none; height: 34vh; }
@@ -1642,7 +1654,7 @@ $('#panel').addEventListener('click', (e) => {
   } else if (act === 'resume') {
     closePanel();
   } else if (act === 'retry') {
-    closePanel(); resetStage(); banner('第1話', '下水道の大ドブネズミ', '#ffb547', 'RETRY');
+    closePanel(); resetStage(); banner(`第${EP().n}話`, EP().title, '#ffb547', 'RETRY');
   } else if (act === 'home') {
     exitStage(); banner('ねこだまり基地', 'おかえり、ノネコ', '#ffb547', 'HOME');
   }
@@ -1895,7 +1907,7 @@ const BOOK = [
 ];
 function renderBook() {
   const e = BOOK[SCR.book], open = e.open();
-  pvShow($('#pv'), open || e.id === 'noneko' ? e.model : (e.model === 'rat' || e.model === 'boss' ? 'shadowRat' : e.model));
+  pvShow($('#pv'), open ? e.model : (e.shadow ? 'shadowRat' : e.model));
   $('#scrLB').innerHTML = navHTML(open ? e.name : '？？？', `${SCR.book + 1} / ${BOOK.length}`);
   $('#scrR').innerHTML = open ? `
     <div class="rhead"><span class="bname">${esc(e.name)}</span><span class="chip">${esc(e.cat)}</span></div>
@@ -1919,15 +1931,32 @@ const MISSIONS = [
     desc: '下水道のさらに奥から聞こえた不気味な鳴き声。その正体とは…', open: () => false, done: () => false }
 ];
 function renderMission() {
-  const nodes = MISSIONS.map((m, i) => {
+  const mains = MISSIONS.filter((m) => m.type === 'main'), minis = MISSIONS.filter((m) => m.type === 'mini');
+  const X = (i) => 14 + i * 170, MT = 14, mainCy = MT + 48;
+  const node = (m, i, left, top) => {
     const open = m.open(), done = m.done();
     const tag = !open ? '' : done ? '<span class="ntag done">クリア</span>' : m.play ? '<span class="ntag new">NEW!!</span>' : '<span class="ntag soon">準備中</span>';
-    return `<button class="mnode ${m.type} ${open ? '' : 'locked'}" data-a="mission" data-i="${i}" ${open ? '' : 'disabled'} style="--i:${i}">
-      ${tag}<span class="mball">${m.type === 'main' ? 'メイン' : 'ミニ'}</span><span class="mlabel">${open ? esc(m.title) : '？？？'}</span></button>`;
-  }).join('');
-  $('#scrR').innerHTML = `<div class="mhead"><span class="chip">第1話</span><b>下水道の大ドブネズミ</b></div>
-    <div class="mtrack"><div class="mroad"></div>${nodes}</div>
-    <p class="hint">ミッションを選ぶと、くわしい内容を確認して出動できます。ミニストーリーは第1話クリア後に増えていきます。</p>`;
+    const label = m.type === 'main' ? `第${m.ep}話` : 'ミニ';
+    return `<button class="mnode ${m.type} ${open ? '' : 'locked'}" data-a="mission" data-i="${MISSIONS.indexOf(m)}" ${open ? '' : 'disabled'} style="left:${left}px;top:${top}px">
+      ${tag}<span class="mball">${label}</span><span class="mlabel">${open ? esc(m.title) : '？？？'}</span></button>`;
+  };
+  let roads = `<div class="mroad h" style="left:${X(0) + 76}px;top:${mainCy - 6}px;width:${(mains.length - 1) * 170}px"></div>`;
+  let nodes = mains.map((m, i) => node(m, i, X(i), MT)).join('');
+  let maxDepth = 0;
+  mains.forEach((m, i) => {
+    const kids = minis.filter((k) => k.parent === m.ep);
+    if (!kids.length) return;
+    maxDepth = Math.max(maxDepth, kids.length);
+    const lastCy = 160 + (kids.length - 1) * 130 + 48;
+    roads += `<div class="mroad v" style="left:${X(i) + 70}px;top:${mainCy}px;height:${lastCy - mainCy}px"></div>`;
+    kids.forEach((k, j) => { nodes += node(k, j, X(i), 160 + j * 130); });
+  });
+  const W = X(mains.length) + 10, H = 160 + maxDepth * 130 + 10;
+  $('#scrR').innerHTML = `<div class="mhead"><b>ストーリー</b><span class="chip">メインは右へ、ミニストーリーは下へ</span></div>
+    <div class="mtrack"><div class="mcanvas" style="width:${W}px;height:${H}px">${roads}${nodes}</div></div>
+    <p class="hint">ミッションを選ぶと、くわしい内容を確認して出動できます。上下左右にスライドして見られます。</p>`;
+  const cur = mains.findIndex((m) => m.open() && !m.done());
+  if (cur > 1) $('#scrR .mtrack').scrollLeft = X(cur) - 180;
   if (SCR.mission) renderMissionPop();
 }
 function renderMissionPop() {
@@ -1946,16 +1975,23 @@ function renderMissionPop() {
     <p class="mcdesc">${esc(m.desc)}</p>
     <div class="mcbtns"><button class="btn ghost" data-a="closepop">もどる</button><button class="btn go" data-a="go" ${m.play ? '' : 'disabled'}>${m.play ? '出動する！' : '準備中'}</button></div>
   </div>`;
-  // 小さな地図（路地裏→下水道の道すじ）
+  // 小さな地図（そのお話のエリアの道すじを左から順に）
   const c = pop.querySelector('.mcmap'), g = c.getContext('2d');
   g.fillStyle = '#1d1834'; g.fillRect(0, 0, 240, 160);
-  const draw = (path, ox, col, sx, sz) => { g.strokeStyle = col; g.lineWidth = 6; g.lineJoin = g.lineCap = 'round'; g.beginPath();
-    path.forEach((p, i) => { const x = ox + p.x * sx, y = 14 + -p.z * sz; i ? g.lineTo(x, y) : g.moveTo(x, y); }); g.stroke(); };
-  draw(AREA_DEF.alley.path, 60, '#7a6fa0', 1.6, 1.05);
-  draw(AREA_DEF.sewer.path, 170, '#6f9a84', 1.6, 0.7);
-  g.fillStyle = '#ff6a4d'; g.beginPath(); g.arc(170, 14 + 174 * 0.7 > 150 ? 146 : 14 + 174 * 0.7, 7, 0, Math.PI * 2); g.fill();
-  g.fillStyle = '#ffb547'; g.beginPath(); g.arc(60, 14 - 6 * 1.05 + 8, 5, 0, Math.PI * 2); g.fill();
-  g.font = '800 11px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#b9b0d6'; g.fillText('路地裏', 34, 154); g.fillText('下水道', 150, 154);
+  const ep = EPISODES[(m.ep || 1) - 1];
+  const keys2 = m.type === 'main' ? ep.areas : ['alley'];
+  const cols = ['#7a6fa0', '#6f9a84'];
+  keys2.forEach((k, ai) => {
+    const D = AREA_DEF[k], bb = pathBounds([].concat(...D.paths), D.arena);
+    const cw = 240 / keys2.length, sc = Math.min((cw - 24) / (bb.x1 - bb.x0 + 4), 122 / (bb.z1 - bb.z0 + 4));
+    const ox = cw * ai + cw / 2 - (bb.x0 + bb.x1) / 2 * sc, oz = 12 - bb.z1 * sc * -1;
+    const Y = (z) => 12 + (bb.z1 - z) * sc;
+    g.strokeStyle = cols[ai % 2]; g.lineWidth = 5; g.lineJoin = g.lineCap = 'round';
+    for (const P of D.paths) { g.beginPath(); P.forEach((p, i) => (i ? g.lineTo(ox + p.x * sc, Y(p.z)) : g.moveTo(ox + p.x * sc, Y(p.z)))); g.stroke(); }
+    if (D.arena) { g.fillStyle = '#ff6a4d'; g.beginPath(); g.arc(ox + D.arena.x * sc, Y(D.arena.z), 7, 0, Math.PI * 2); g.fill(); }
+    if (!ai) { g.fillStyle = '#ffb547'; g.beginPath(); g.arc(ox + D.path[0].x * sc, Y(D.path[0].z), 5, 0, Math.PI * 2); g.fill(); }
+    g.font = '800 11px "M PLUS Rounded 1c", sans-serif'; g.fillStyle = '#b9b0d6'; g.textAlign = 'center'; g.fillText(D.name, cw * ai + cw / 2, 154); g.textAlign = 'left';
+  });
   if (!m.play) { g.fillStyle = 'rgba(13,10,26,.7)'; g.fillRect(0, 0, 240, 160); g.fillStyle = '#b9b0d6'; g.font = '800 16px "M PLUS Rounded 1c", sans-serif'; g.fillText('準備中', 96, 86); }
 }
 
@@ -2007,7 +2043,7 @@ $('#scr').addEventListener('click', (e) => {
   } else if (a === 'closepop') {
     SCR.mission = null;
   } else if (a === 'go') {
-    closeScreen(); departMovie(); return;
+    const ep = SCR.mission.ep || 1; closeScreen(); departMovie(ep); return;
   }
   renderScreen();
 });
@@ -2117,7 +2153,7 @@ function buildRat(o) {
   part(head, new THREE.SphereGeometry(0.05, 12, 10), pinkM, 0, -0.02, 0.44, { ol: 0.008 });
   for (const s of [-1, 1]) part(head, box(0.04, 0.075, 0.02), basic(P.boss && s > 0 ? '#ffd36b' : '#fffbe8'), s * 0.022, -0.15, 0.39, { ol: 0.005 });
   for (const s of [-1, 1]) {
-    if (P.boss && s > 0) {
+    if (P.boss && s > 0 && P.patch !== false) {
       part(head, ellip(0.075, 0.075, 0.025), basic('#15101c'), 0.12, 0.06, 0.215, { ry: 0.5, ol: 0.008 });
       head.add(tube([[0.2, 0.2, 0.05], [0.12, 0.08, 0.24], [-0.05, -0.02, 0.27], [-0.26, 0.02, 0.05]], 0.012, basic('#15101c')));
     } else {
@@ -2131,15 +2167,23 @@ function buildRat(o) {
     part(ear, ellip(0.09, 0.09, 0.02), pinkM, 0, 0, 0.02, { ol: 0 });
     for (let k = 0; k < 2; k++) head.add(tube([[s * 0.1, -0.06 - k * 0.03, 0.38], [s * 0.26, -0.03 - k * 0.05, 0.4], [s * 0.4, -0.02 - k * 0.09, 0.36]], 0.005, basic('#2a2230')));
   }
-  if (P.boss) {
+  if (P.band) {
+    part(head, new THREE.TorusGeometry(0.255, 0.04, 8, 28), toon(P.band), 0, 0.1, -0.02, { rx: Math.PI / 2 - 0.3, ol: 0.01 });
+    for (const s of [-1, 1]) part(head, box(0.05, 0.16, 0.03), toon(P.band), s * 0.06, 0.02, -0.29, { rz: s * 0.4, ol: 0.008 });
+  }
+  if (P.helmet) {
+    part(head, new THREE.SphereGeometry(0.3, 20, 10, 0, Math.PI * 2, 0, Math.PI / 2), toon(P.helmet), 0, 0.07, -0.02, { ol: 0.012 });
+    part(head, cyl(0.33, 0.33, 0.04, 24), toon(P.helmet), 0, 0.075, 0.0, { ol: 0.01 });
+  }
+  if (P.boss && P.crown !== null) {
     const crown = new THREE.Group(); crown.position.set(-0.05, 0.25, -0.02); crown.rotation.set(-0.15, 0, 0.35); head.add(crown);
-    part(crown, cyl(0.16, 0.18, 0.07, 18), toon('#e8c45a'), 0, 0, 0, { ol: 0.01 });
+    part(crown, cyl(0.16, 0.18, 0.07, 18), toon(P.crown || '#e8c45a'), 0, 0, 0, { ol: 0.01 });
     for (let k = 0; k < 12; k++) {
       const a = k / 12 * Math.PI * 2;
       part(crown, box(0.035, 0.08, 0.035), toon('#c99a3a'), Math.cos(a) * 0.175, 0, Math.sin(a) * 0.175, { ry: -a, ol: 0 });
     }
-    head.add(tube([[-0.24, 0.1, 0.12], [-0.16, 0.0, 0.2], [-0.1, -0.08, 0.24]], 0.012, basic('#f2a7ad')));
   }
+  if (P.boss) head.add(tube([[-0.24, 0.1, 0.12], [-0.16, 0.0, 0.2], [-0.1, -0.08, 0.24]], 0.012, basic('#f2a7ad')));
   R.legs = [];
   for (const [x, z] of [[-0.22, 0.28], [0.22, 0.28], [-0.22, -0.28], [0.22, -0.28]]) {
     const leg = new THREE.Group(); leg.position.set(x, -0.16, z); body.add(leg);
@@ -2570,6 +2614,393 @@ function buildSewer() {
   return D;
 }
 
+/* ================= ストーリー（第1話〜第10話） ================= */
+// 第2話からのマップは「テーマ」と「乱数の種」から自動で作る。どのマップも
+// 「最初のエリア → 真っ暗なトンネル（読み込み）→ ボスのいるエリア」の2エリア構成。
+const plankTexW = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(0,0,0,.28)'; g.lineWidth = 3;
+  for (let y = 0; y <= h; y += 32) { g.beginPath(); g.moveTo(0, y); g.lineTo(w, y); g.stroke(); }
+  for (let r = 0; r < 8; r++) { const x = (r * 97) % w; g.beginPath(); g.moveTo(x, r * 32); g.lineTo(x, r * 32 + 32); g.stroke(); }
+}, [1, 1]);
+const stripeAwn = (c1, c2) => canvasTex(128, 32, (g, w, h) => { for (let i = 0; i < 8; i++) { g.fillStyle = i % 2 ? c2 : c1; g.fillRect(i * 16, 0, 16, h); } });
+const PATH_TEX = { stone: stoneTexW, tile: tileTexW, plank: plankTexW };
+const ENVS = (bg, fog, sky, gnd, hi, lamp) => ({ bg, fog, sky, gnd, hi, lamp: !!lamp });
+const THEMES = {
+  sewerDeep: { water: '#24483a', path: '#5f6874', tex: 'stone', edge: '#3e4550', side: 'wall', c1: '#4a4552', c2: '#5b5360', wall: '#4a4552', trim: '#5f5a6a', props: [], env: ENVS(0x0a1411, [14, 38], 0x98d0b0, 0x16221d, 0.55, 1) },
+  reservoir: { water: '#1f4a5c', path: '#7a8590', tex: 'stone', edge: '#4c5662', side: 'pillar', c1: '#6a7480', c2: '#86909c', wall: '#56606c', trim: '#6e7884', props: [], env: ENVS(0x0b1820, [16, 44], 0x9cc8e0, 0x14222a, 0.6, 1) },
+  street: { ground: '#36304a', path: '#8a6f5a', tex: 'tile', side: 'stall', c1: '#6a4a3a', c2: '#c9452f', wall: '#6b4f42', trim: '#8a6a58', props: ['can', 'crate', 'cone'], env: ENVS(0x1d1733, [26, 56], 0xd8c8ff, 0x4a3a58, 0.75) },
+  market: { ground: '#3a3240', path: '#7a6650', tex: 'plank', side: 'junk', c1: '#a07444', c2: '#8a6236', wall: '#6b4f42', trim: '#8a6a58', props: ['crate', 'barrel'], env: ENVS(0x1a1530, [24, 54], 0xd0c0f0, 0x4a3a50, 0.72) },
+  park: { ground: '#2f4a32', path: '#9a8462', tex: 'tile', side: 'tree', c1: '#3f7a46', c2: '#5a9a52', wall: '#5a6a4a', trim: '#7a8a6a', props: ['bench', 'lamp'], env: ENVS(0x141f2a, [24, 54], 0xbfe0ff, 0x2a3a2a, 0.72) },
+  woods: { ground: '#23382a', path: '#7a6a50', tex: 'plank', side: 'tree', c1: '#2f5f3a', c2: '#447a42', wall: '#4a5a3a', trim: '#6a7a5a', props: ['crate'], env: ENVS(0x0e1812, [18, 44], 0xa8d8b0, 0x1a2a1a, 0.6, 1) },
+  pier: { water: '#20405a', path: '#8a6a48', tex: 'plank', edge: '#5a4430', side: 'post', c1: '#6a5038', c2: '#c9a35a', wall: '#5a6a78', trim: '#7a8a98', props: [], env: ENVS(0x0f1a2a, [24, 56], 0xb8d0f0, 0x1a2a3a, 0.72) },
+  warehouse: { ground: '#34343c', path: '#6a6f78', tex: 'tile', side: 'container', c1: '#c9452f', c2: '#3f7fd0', wall: '#4a4e58', trim: '#6a6e78', props: ['crate', 'barrel'], env: ENVS(0x15151c, [22, 50], 0xd0d4e0, 0x2a2a30, 0.7) },
+  rooftop: { ground: '#1a1630', path: '#8a4a3a', tex: 'tile', side: 'chimney', c1: '#7a4a3a', c2: '#5a3a30', wall: '#6a4a42', trim: '#8a6a5a', props: ['crate'], env: ENVS(0x1b1838, [30, 64], 0xd8d0ff, 0x3a2a48, 0.8) },
+  clock: { ground: '#1a1630', path: '#6a6070', tex: 'stone', side: 'pillar', c1: '#8a7a5a', c2: '#c9a35a', wall: '#6a6070', trim: '#c9a35a', props: [], env: ENVS(0x161430, [28, 60], 0xe0d8ff, 0x3a3048, 0.78) },
+  station: { ground: '#302d38', path: '#7a7480', tex: 'tile', side: 'pillar', c1: '#5a5862', c2: '#8a6a3a', wall: '#55525e', trim: '#6e6b78', props: ['bench', 'can'], env: ENVS(0x14131a, [22, 50], 0xc8c8d8, 0x2a2830, 0.66) },
+  railTunnel: { ground: '#1e1c24', path: '#5a5048', tex: 'plank', side: 'wall', c1: '#4a4650', c2: '#5a5660', wall: '#4a4650', trim: '#5e5a66', props: ['barrel'], env: ENVS(0x09080e, [14, 38], 0xb8b0c8, 0x16141c, 0.5, 1) },
+  dump: { ground: '#4a4030', path: '#7a6a50', tex: 'plank', side: 'junk', c1: '#8a7a5a', c2: '#5f7a8a', wall: '#6a5a40', trim: '#8a7a5a', props: ['can', 'barrel'], env: ENVS(0x1c1820, [24, 54], 0xe0d0b0, 0x3a3020, 0.72) },
+  fortress: { ground: '#3e3828', path: '#6a5038', tex: 'plank', side: 'junk', c1: '#7a5a3a', c2: '#c97a3a', wall: '#6a5038', trim: '#8a6a48', props: ['barrel', 'crate'], env: ENVS(0x1a1418, [22, 52], 0xf0c8a0, 0x3a2a20, 0.7) },
+  catacomb: { ground: '#1e1a24', path: '#6a6070', tex: 'stone', side: 'wall', c1: '#4a4252', c2: '#5a5262', wall: '#4a4252', trim: '#5e5666', props: [], env: ENVS(0x0c0a12, [14, 38], 0xb8a8d8, 0x18141e, 0.52, 1) },
+  maze: { ground: '#1a1620', path: '#5a5464', tex: 'stone', side: 'wall', c1: '#3e3848', c2: '#4e4858', wall: '#3e3848', trim: '#544e5e', props: [], env: ENVS(0x09080e, [12, 34], 0xa898c8, 0x14101a, 0.48, 1) },
+  palace: { ground: '#2a1830', path: '#8a6a8a', tex: 'tile', side: 'pillar', c1: '#6a4a6a', c2: '#c9a35a', wall: '#5a3a5a', trim: '#c9a35a', props: [], env: ENVS(0x160c1a, [20, 50], 0xe8c8f0, 0x2a1830, 0.7, 1) },
+  throne: { ground: '#30142a', path: '#9a3a4a', tex: 'tile', side: 'pillar', c1: '#5a2a3a', c2: '#ffd36b', wall: '#4a2030', trim: '#ffd36b', props: [], env: ENVS(0x1a0a14, [22, 54], 0xffd0d8, 0x30101a, 0.75, 1) }
+};
+// 自動で作るマップ：くねくね道＋行き止まりの分かれ道。最後はトンネルかボスの広場
+function genArea(key, o) {
+  const r = seeded(o.seed), w = o.w || 5.0, bw = w * 0.85;
+  const path = [PT(0, 4, w), PT(0, -8, w)];
+  let z = -8, side = r() < 0.5 ? -1 : 1;
+  const corners = [];
+  for (let i = 0; i < o.bends; i++) {
+    const nx = side * (7 + r() * 4); z -= 8 + r() * 3;
+    path.push(PT(nx, z, w)); corners.push(path.length - 1);
+    z -= 10 + r() * 6; path.push(PT(nx, z, w));
+    side = -side;
+  }
+  z -= 9; path.push(PT(0, z, w));
+  const D = Object.assign({ gen: true, theme: o.theme, env: key, path, arena: null, branches: [], spawns: [] }, o);
+  if (o.end === 'tunnel') { path.push(PT(0, z - 8, w)); D.tunnelFrom = path.length - 1; path.push(PT(0, z - 18, w)); }
+  else D.arena = { x: 0, z: z - 10, r: 10 };
+  // 分かれ道：曲がり角から外側へのびて、少し戻る形。本道やほかの分かれ道に近すぎたら作らない
+  const ok = (pts, skip) => {
+    const P = pts.map(([x, z2]) => PT(x, z2, bw));
+    for (let i = 0; i < P.length - 1; i++) {
+      const L = Math.hypot(P[i + 1].x - P[i].x, P[i + 1].z - P[i].z);
+      for (let t = (i ? 0 : skip); t <= L; t += 1) {
+        const x = P[i].x + (P[i + 1].x - P[i].x) * t / L, z2 = P[i].z + (P[i + 1].z - P[i].z) * t / L;
+        if (pathDistOf(path, D.arena, x, z2) < bw / 2 + 2.6) return false;
+        for (const b of D.branches) if (pathDistOf(b.pts.map(([a, c]) => PT(a, c, bw)), null, x, z2) < bw + 2) return false;
+      }
+    }
+    return true;
+  };
+  corners.forEach((ci, k) => {
+    if (k % 2 && k !== corners.length - 1) return;
+    const p = path[ci], s = Math.sign(p.x) || 1;
+    const two = [[p.x, p.z], [p.x + s * 11, p.z]], three = [...two, [p.x + s * 13, p.z + 8]];
+    const sk = w / 2 + bw / 2 + 3;
+    const pick = ok(three, sk) ? three : ok(two, sk) ? two : null;
+    if (pick) D.branches.push({ pts: pick, w: bw, guard: D.branches.length % 3 === 0 ? 1 : 2 });
+  });
+  D.branchPaths = D.branches.map((b) => b.pts.map(([x, z2]) => PT(x, z2, b.w)));
+  D.paths = [path, ...D.branchPaths];
+  const end = D.tunnelFrom ? pathLength(path.slice(0, D.tunnelFrom + 1)) - 6 : pathLength(path) - 8;
+  for (let d = 14, k = 0; d < end; d += 16, k++) D.spawns.push([d, k % 3 === 2 ? 3 : 2]);
+  AREA_DEF[key] = D;
+  return D;
+}
+function themeSide(R, D, T, x, z, yaw, rnd) {
+  const y0 = T.water ? -0.35 : 0;
+  const tall = (g, h) => { R.add(g); D.occluders.push({ m: g, x, z, h }); };
+  switch (T.side) {
+    case 'wall': { const h = 1.3 + rnd() * 0.9; part(R, box(2.4, h, 2.4), toon(T.c1, { map: brickTex }), x, y0 + h / 2, z, { ry: yaw, receive: true, ol: 0.03 }); break; }
+    case 'pillar': { const h = 3.4 + rnd() * 1.6, g = new THREE.Group(); g.position.set(x, y0, z);
+      part(g, cyl(0.55, 0.65, h, 14), toon(T.c1, {}), 0, h / 2, 0, { receive: true, ol: 0.03 }); part(g, box(1.5, 0.3, 1.5), toon(T.c2, {}), 0, h + 0.15, 0, { ol: 0.02 }); part(g, box(1.5, 0.3, 1.5), toon(T.c2, {}), 0, 0.15, 0, { ol: 0.02 }); tall(g, h); break; }
+    case 'tree': { const s = 0.9 + rnd() * 0.4, g = new THREE.Group(); g.position.set(x, y0, z); g.scale.setScalar(s);
+      part(g, cyl(0.22, 0.3, 1.6, 10), toon('#5a3f2a', {}), 0, 0.8, 0, { ol: 0.02 }); part(g, ellip(1.2, 1.0, 1.2), toon(T.c1, {}), 0, 2.3, 0, { ol: 0.03 }); part(g, ellip(0.8, 0.7, 0.8), toon(T.c2, {}), 0.4, 3.0, 0.2, { ol: 0.02 }); tall(g, 3.6 * s); break; }
+    case 'stall': { const g = new THREE.Group(); g.position.set(x, y0, z); g.rotation.y = yaw; R.add(g);
+      part(g, box(2.2, 1.0, 1.6), T.c1, 0, 0.5, 0, { receive: true, ol: 0.02 });
+      for (const sx of [-1, 1]) for (const sz of [-1, 1]) part(g, cyl(0.05, 0.05, 2.2, 6), '#2a2238', sx * 1.05, 1.1, sz * 0.75, { ol: 0 });
+      part(g, box(2.6, 0.12, 2.0), toon(0xffffff, { map: stripeAwn(T.c2, '#f2ead8') }), 0, 2.26, 0, { ol: 0.015 });
+      for (let k = 0; k < 4; k++) part(g, cyl(0.16, 0.16, 0.2, 10), ['#8fd3ec', '#ffd36b', '#ff8fc8', '#9be37a'][k], -0.75 + k * 0.5, 1.11, 0.2, { ol: 0.008 }); break; }
+    case 'container': { const cols = [T.c1, T.c2, '#6fbf73', '#e8c45a'], c = cols[Math.floor(rnd() * 4)];
+      part(R, box(2.3, 2.2, 3.6), toon(c, { map: tileTex }), x, y0 + 1.1, z, { ry: yaw + Math.PI / 2, receive: true, ol: 0.03 }); break; }
+    case 'chimney': { const g = new THREE.Group(); g.position.set(x, y0, z); g.rotation.y = yaw; R.add(g);
+      part(g, box(1.0, 1.6, 1.0), toon(T.c1, { map: brickTex }), 0, 0.8, 0, { ol: 0.02 }); part(g, box(1.2, 0.2, 1.2), T.c2, 0, 1.7, 0, { ol: 0.015 });
+      if (rnd() < 0.5) { part(g, cyl(0.03, 0.03, 1.4, 6), '#2a2238', 0.8, 0.7, 0.4, { ol: 0 }); part(g, box(0.7, 0.04, 0.04), '#2a2238', 0.8, 1.3, 0.4, { ol: 0 }); } break; }
+    case 'post': { part(R, cyl(0.25, 0.28, 1.8, 10), T.c1, x, y0 + 0.9, z, { ol: 0.02 }); if (rnd() < 0.4) part(R, new THREE.TorusGeometry(0.35, 0.08, 8, 16), T.c2, x, y0 + 1.4, z, { rx: Math.PI / 2, ol: 0.01 }); break; }
+    case 'junk': { const g = new THREE.Group(); g.position.set(x, y0, z); g.rotation.y = yaw + rnd(); R.add(g);
+      part(g, box(1.2, 0.9, 1.0), T.c1, -0.4, 0.45, 0, { ol: 0.02 }); part(g, box(0.8, 0.7, 0.8), T.c2, 0.5, 0.35, 0.3, { ol: 0.02 });
+      part(g, box(0.7, 0.6, 0.7), T.c1, -0.3, 1.21, 0.05, { ry: 0.5, ol: 0.02 }); part(g, new THREE.TorusGeometry(0.4, 0.15, 8, 16), '#2a2238', 0.6, 0.16, -0.5, { rx: Math.PI / 2, ol: 0.01 }); break; }
+  }
+}
+function edgeProp(R, kind, x, z, y0, yaw) {
+  if (kind === 'can') { part(R, cyl(0.42, 0.38, 1.0, 18), '#5f7a8a', x, y0 + 0.5, z); part(R, cyl(0.46, 0.46, 0.1, 18), '#4c6472', x, y0 + 1.06, z); }
+  if (kind === 'crate') part(R, box(0.9, 0.9, 0.9), '#a07444', x, y0 + 0.45, z, { ry: yaw });
+  if (kind === 'cone') { part(R, new THREE.ConeGeometry(0.28, 0.75, 16), '#ff7a3d', x, y0 + 0.43, z); part(R, box(0.6, 0.06, 0.6), '#ff7a3d', x, y0 + 0.03, z, { ol: 0.01 }); }
+  if (kind === 'barrel') { part(R, cyl(0.4, 0.4, 1.0, 16), '#7a5a3a', x, y0 + 0.5, z); part(R, new THREE.TorusGeometry(0.41, 0.03, 6, 20), '#3a3348', x, y0 + 0.3, z, { rx: Math.PI / 2, ol: 0 }); }
+  if (kind === 'bench') { const g = new THREE.Group(); g.position.set(x, y0, z); g.rotation.y = yaw; R.add(g); part(g, box(1.4, 0.1, 0.5), '#8a5a34', 0, 0.45, 0, { ol: 0.01 }); for (const s of [-1, 1]) part(g, box(0.1, 0.45, 0.45), '#2a2238', s * 0.6, 0.22, 0, { ol: 0 }); }
+  if (kind === 'lamp') { part(R, cyl(0.06, 0.08, 2.4, 8), '#2a2238', x, y0 + 1.2, z); part(R, new THREE.SphereGeometry(0.22, 12, 10), basic('#ffcf7a'), x, y0 + 2.5, z, { ol: 0.01, shadow: false }); }
+}
+function buildGen(key) {
+  const D = AREA_DEF[key], T = THEMES[D.theme], path = D.path, A = D.arena;
+  const R = new THREE.Group(); S.root.add(R); D.root = R; D.obstacles = []; D.occluders = [];
+  const bb = pathBounds([].concat(...D.paths), A);
+  const cx = (bb.x0 + bb.x1) / 2, cz = (bb.z0 + bb.z1) / 2, W = bb.x1 - bb.x0 + 70, H = bb.z1 - bb.z0 + 50;
+  if (T.water) {
+    const water = new THREE.Mesh(new THREE.PlaneGeometry(W, H), toon(T.water, { map: rippleTex, emissive: new THREE.Color(T.water).multiplyScalar(0.35) }));
+    water.rotation.x = -Math.PI / 2; water.position.set(cx, -0.35, cz); R.add(water);
+  } else {
+    const g = new THREE.Mesh(box(W, 0.2, H), toon(T.ground, { map: alleyGroundTex })); g.position.set(cx, -0.1, cz); g.receiveShadow = true; R.add(g);
+  }
+  const top = T.water ? FLOOR.SEWER : FLOOR.ALLEY, thick = T.water ? 0.7 : 0.16;
+  const pm = toon(T.path, { map: PATH_TEX[T.tex] }), em = T.water ? toon(T.edge, { map: PATH_TEX[T.tex] }) : null;
+  const darkM = new THREE.MeshBasicMaterial({ color: '#000000' });
+  buildPathFloor(R, path, { mat: pm, darkMat: darkM, top, thick, edge: em, dark: D.tunnelFrom ? (i) => i >= D.tunnelFrom : null });
+  for (const bp of D.branchPaths) buildPathFloor(R, bp, { mat: pm, top, thick, edge: em });
+  buildDeadEnds(R, D, toon(T.wall, { map: brickTex }), 1.6);
+  const M = D.tunnelFrom ? path[D.tunnelFrom] : null;
+  // 道の両わき
+  const rnd = seeded(D.seed * 7 + 3);
+  for (const P of D.paths) for (let i = 0; i < P.length - 1; i++) {
+    const a = P[i], b = P[i + 1], len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
+    for (let t = 1.5; t <= len; t += 3.2) for (const s of [-1, 1]) {
+      const off = a.w / 2 + 2.6 + rnd() * 0.5, x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
+      if (pathDistAll(D.paths, A, x, z) < 2.4 || z > path[0].z - 1.5 || (M && z < M.z + 3) || (A && Math.hypot(x - A.x, z - A.z) < A.r + 2.5)) continue;
+      themeSide(R, D, T, x, z, Math.atan2(dx, dz), rnd);
+    }
+  }
+  // 道ばたの小物（水のないマップだけ。曲がり角と分かれ道の入口はさける）
+  if (!T.water && T.props.length) {
+    let k = 0;
+    for (let i = 1; i < path.length - 2; i++) {
+      const a = path[i], b = path[i + 1], len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
+      for (let t = 4; t < len - 4; t += 8) {
+        const s = (k % 2) ? 1 : -1, x = a.x + dx * t + dz * s * (a.w / 2 - 0.6), z = a.z + dz * t - dx * s * (a.w / 2 - 0.6);
+        k++;
+        if ((M && z < M.z + 4) || D.branchPaths.some((bp) => Math.hypot(bp[0].x - x, bp[0].z - z) < bp[0].w / 2 + 2.5)) continue;
+        edgeProp(R, T.props[k % T.props.length], x, z, top, t);
+        D.obstacles.push({ x, z, r: 0.55 });
+      }
+    }
+  }
+  // 入口（通ってきた暗いトンネル。低い壁でカメラの視界をふさがない）
+  archWall(R, { x: 0, z: path[0].z + 2.4, w: 30, h: 2.6, ow: path[0].w + 0.3, oh: 2.45, depth: 1.4, color: T.wall, trim: T.trim, facing: -1 });
+  if (M) {
+    archWall(R, { x: M.x, z: M.z, w: 36, h: 5.5, ow: M.w + 0.3, oh: 4.0, depth: 1.6, color: T.wall, trim: T.trim });
+    const nx = D.next ? AREA_DEF[D.next] : null;
+    if (nx) { const sg = labelSprite(nx.name, 'この先、真っ暗', '#9be37a'); sg.scale.multiplyScalar(0.7); sg.position.set(M.x, 6.6, M.z + 0.6); R.add(sg); }
+  }
+  if (A) buildArena(R, D, T, pm, em, top, thick);
+  return D;
+}
+function buildArena(R, D, T, pm, em, top, thick) {
+  const A = D.arena, path = D.path;
+  floorPiece(R, A.x, A.z, 0, A.r * 2, top, thick, pm);
+  if (em) floorPiece(R, A.x, A.z, 0, A.r * 2 + 0.4, FLOOR.EDGE, thick, em);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(A.r - 0.5, A.r - 0.25, 64), basic('#8a3a3a'));
+  ring.rotation.x = -Math.PI / 2; ring.position.set(A.x, top + 0.015, A.z); R.add(ring);
+  const y0 = T.water ? -0.35 : 0;
+  for (let k = 0; k < 14; k++) {
+    const a = k / 14 * Math.PI * 2, x = A.x + Math.cos(a) * (A.r + 1.2), z = A.z + Math.sin(a) * (A.r + 1.2);
+    if (pathDistAll(D.paths, null, x, z) < 1.2) continue;
+    part(R, cyl(0.7, 0.8, 5 + (k % 3), 12), toon(T.wall, { map: brickTex }), x, y0 + (5 + (k % 3)) / 2, z, { receive: true, ol: 0.03 });
+  }
+  const rj = seeded(D.seed + 11);
+  for (const [x, z] of [[-2.5, -7], [2.8, -7.5], [0, -8.5], [-4.5, -4.5], [4.6, -4.8]]) part(R, box(1.6, 1.2 + rj(), 1.4), rj() < 0.5 ? T.c1 : T.c2, A.x + x, top + 0.6, A.z + z, { ry: rj(), receive: true });
+  const sg = labelSprite(D.lair || 'ボスのねぐら', '', '#ff6a4d'); sg.scale.multiplyScalar(0.8); sg.position.set(A.x, 4.2, A.z - 9); R.add(sg);
+  const pEnd = path[path.length - 1], pPrev = path[path.length - 2];
+  const ux0 = pEnd.x - A.x, uz0 = pEnd.z - A.z, ul = Math.hypot(ux0, uz0), ux = ux0 / ul, uz = uz0 / ul;
+  const sl = Math.hypot(pEnd.x - pPrev.x, pEnd.z - pPrev.z);
+  const cosA = Math.abs(((pEnd.x - pPrev.x) * ux + (pEnd.z - pPrev.z) * uz) / sl);
+  const gw = pEnd.w / Math.max(0.5, cosA) + 0.6;
+  const gate = new THREE.Group(); gate.position.set(A.x + ux * (A.r + 0.25), -3, A.z + uz * (A.r + 0.25)); gate.rotation.y = Math.atan2(ux, uz); R.add(gate);
+  const nb = Math.round(gw / 0.7);
+  for (let k = 0; k <= nb; k++) part(gate, cyl(0.07, 0.07, 2.6, 8), '#3a3348', -gw / 2 + k * gw / nb, 1.3, 0, { ol: 0.015 });
+  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 2.5, 0, { ol: 0.015 });
+  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 0.6, 0, { ol: 0.015 });
+  D.gate = gate;
+  S.animated.push((dt) => { if (S.area !== D.key) return; const ty = S.bossLock ? 0 : -3; gate.position.y += (ty - gate.position.y) * Math.min(1, dt * 6); });
+}
+
+/* ---------- 敵の種類 ---------- */
+const RTYPES = {
+  rat: { name: 'ドブネズミ', look: {}, hp: 1, atk: 1, spd: 3.3, scale: 1 },
+  white: { name: 'ハツカネズミ', look: { fur: '#e8e4ec', belly: '#ffffff', eye: '#ff5a8a' }, hp: 0.6, atk: 0.8, spd: 4.6, scale: 0.85 },
+  armor: { name: 'カブトネズミ', look: { fur: '#6a6458', belly: '#9a9282', helmet: '#8a8fa0' }, hp: 2.0, atk: 1.3, spd: 2.5, scale: 1.15 },
+  ninja: { name: '忍者ネズミ', look: { fur: '#2a2436', belly: '#4a4256', band: '#c9452f' }, hp: 0.9, atk: 1.2, spd: 4.0, scale: 0.95 }
+};
+// 推奨レベル（第n話は Lv 3n）の能力値に合わせて、敵の体力・攻撃力を上げる
+const epHpMul = (n) => (15 + 9 * n) / 24;
+const epAtkMul = (n) => (106 + 42 * n) / 148;
+
+/* ---------- 第1話〜第10話 ---------- */
+const BOOKB = (bg, pers, feat) => ({ bg, pers, feat });
+const EPISODES = [
+  { n: 1, title: '下水道の大ドブネズミ', areas: ['alley', 'sewer'], mix: { rat: 1 },
+    goal: '下水道の奥にいる大ドブネズミを倒せ！', place: '基地の裏の路地裏 → 下水道',
+    desc: '道具屋のチャトラから聞いたウワサの大ドブネズミ。路地裏をぬけて下水道の奥へ乗りこみ、ノネコの名を猫界にとどろかせろ！',
+    intro: ['ここが基地の裏の路地裏だ。この先の下水道に、ウワサの大ドブネズミがいる。', '道はけっこう長えな…ドブネズミどもを片づけながら進むとするか。'],
+    boss: { name: '大ドブネズミ', cat: '小ボス', fur: '#5e5248', belly: '#9c8b74', crown: '#e8c45a', summon: 'rat',
+      start: [['boss', 'チュッチュッ…ネコが一匹、わざわざ食われに来たのか？'], ['noneko', 'お前がウワサの大ドブネズミか。オレはノネコ。お前を倒して、この名を猫界にとどろかせてやる！'], ['boss', '生意気なネコめ！ この下水道はオレ様のナワバリだ。ひねりつぶしてくれる！']],
+      end: [['boss', 'ぐぬぬ…こ、このオレ様が…ネコごときに…'], ['noneko', 'へっ、見たか！ これでノネコの名も、少しは猫界に知れ渡るってもんだ。'], ['nar', '――そのとき、下水道のさらに奥から、地鳴りのような鳴き声がひびいた。'], ['noneko', '…まだ奥に、もっとでかいヤツがいるってのか？ 上等だ！']],
+      book: BOOKB('下水道をナワバリにする大きなネズミ。ドブネズミたちを子分にして、町の食べ物を集めさせている。', 'いばりんぼうで見栄っぱり。自分より大きな者には頭が上がらないといううわさも。', 'ビンのふたで作った王冠と眼帯がじまん。突進のあとは目を回してスキだらけになる。') },
+    clear: '大ドブネズミを倒し、ノネコの名が路地裏に広まりはじめた。' },
+  { n: 2, title: '地鳴りの主', mix: { rat: 0.7, armor: 0.3 },
+    areas: [{ key: 'e2a', name: '下水道の奥', theme: 'sewerDeep', seed: 21, bends: 6, w: 4.4, sub: '地鳴りがだんだん近づいてくる', line: '下水道のさらに奥…空気が重てえな。' },
+      { key: 'e2b', name: '地下貯水池', theme: 'reservoir', seed: 22, bends: 7, w: 4.6, sub: '水音がひびく広い地下空間', line: 'すげえ広さだ…この先から、あの地鳴りが聞こえる。', lair: 'ドブガシラのねどこ' }],
+    goal: '地鳴りの主・ドブガシラを倒せ！', place: '下水道の奥 → 地下貯水池',
+    desc: 'あの夜から、下水道の奥で地鳴りがやまない。大ドブネズミが言っていた「もっとでかいヤツ」の正体をたしかめろ！',
+    movie: [['chatora', 'あの夜から、下水道の奥で地鳴りがやまないんだってさ。'], ['noneko', '大ドブネズミの言ってた「もっとでかいヤツ」か…行ってやろうじゃねえか！']],
+    intro: ['下水道のさらに奥へ行くぜ。地鳴りの主ってのは、どんなヤツなんだ？', 'よろいみてえなフタをかぶったネズミもいやがる。かてえぞ、気をつけろ。'],
+    boss: { name: 'ドブガシラ', fur: '#4a5a48', belly: '#7a8a70', crown: null, patch: true, scale: 3.0, hpX: 1.1, summon: 'armor',
+      start: [['boss', 'グオォ…弟分の大ドブネズミをやったのは、きさまか。'], ['noneko', 'ああ。次はお前の番だぜ、デカブツ！'], ['boss', 'このドブガシラさまを、あいつと一緒にするなよ！']],
+      end: [['boss', 'ぐ…ぐふっ…だが、オレたちの上には…ネズミ大王さまがいる…'], ['noneko', 'ネズミ大王…？'], ['boss', '大王さまは、この町をまるごとネズミの国にするおつもりだ…せいぜいあがくがいい…'], ['nar', 'ネズミ大王――その名を胸に、ノネコは地上へもどった。']],
+      book: BOOKB('下水道のいちばん奥にすむ巨大なドブネズミ。大ドブネズミの兄貴分で、地鳴りのようないびきの主。', '気は短いが仲間思い。弟分をやられて本気で怒っている。', '苔むしたような緑がかった毛。体が重く、突進の威力はすさまじい。') },
+    clear: 'ドブガシラを倒し、ネズミたちの親玉「ネズミ大王」の存在を知った。' },
+  { n: 3, title: '商店街のどろぼうネズミ', mix: { rat: 0.6, armor: 0.4 },
+    areas: [{ key: 'e3a', name: '夜の商店街', theme: 'street', seed: 31, bends: 6, w: 5.4, sub: 'シャッターの閉まった夜の商店街', line: 'ネズミどもがうろついてやがる。ニボシを取りもどしに行くぜ！' },
+      { key: 'e3b', name: '市場の裏', theme: 'market', seed: 32, bends: 7, w: 5.0, sub: '盗まれたニボシが運ばれた先', line: 'こんなに木箱が…盗んだニボシをためこんでるのか？', lair: 'どろぼう団のかくれ家' }],
+    goal: 'どろぼう団の親分・チュウ吉を倒せ！', place: '夜の商店街 → 市場の裏',
+    desc: '商店街の魚屋から、ニボシがごっそり盗まれた。犯人はネズミのどろぼう団らしい。ニボシを取りもどせ！',
+    movie: [['chatora', '大変だよノネコ！ 商店街の魚屋から、ニボシがごっそり盗まれたんだ！'], ['noneko', 'ネズミのしわざか。ニボシ泥棒は、ネコとして許しちゃおけねえ！']],
+    intro: ['シャッターの閉まった夜の商店街…ネズミどものにおいがプンプンするぜ。', '盗まれたニボシ、ひとつ残らず取りもどしてやる！'],
+    boss: { name: 'チュウ吉', fur: '#8a6a4a', belly: '#c9a882', crown: null, patch: false, band: '#3f7fd0', scale: 2.4, spd: 0.85, summon: 'rat',
+      start: [['boss', 'チュッチュー！ 見つかっちまったか。おいらはどろぼう団の親分、チュウ吉さまよ！'], ['noneko', '盗んだニボシ、全部返してもらうぜ。'], ['boss', 'やなこった！ これは大王さまの「満月の宴」に運ぶ大事な食料なんだい！']],
+      end: [['boss', 'いてて…わ、わかったよ、返すよぉ…'], ['noneko', '満月の宴ってのは何だ？'], ['boss', '満月の夜、大王さまが町じゅうのネズミを集めて…おっと、これ以上は言えねえ！'], ['nar', 'チュウ吉はすばしっこく逃げていった。あとには取りもどしたニボシの山が残った。']],
+      book: BOOKB('商店街を荒らすどろぼう団の親分。夜な夜な店からニボシや干物をくすねている。', 'お調子者で口が軽い。逃げ足だけは町いちばん。', '青いほっかむりがトレードマーク。身軽で、攻撃のテンポが速い。') },
+    clear: 'チュウ吉からニボシを取りもどし、大王の「満月の宴」のウワサを聞いた。' },
+  { n: 4, title: '公園の白い影', mix: { white: 0.6, rat: 0.4 },
+    areas: [{ key: 'e4a', name: '夜の公園', theme: 'park', seed: 41, bends: 6, w: 5.4, sub: 'ブランコがきしむ真夜中の公園', line: '白い影…あれか？ すばしっこいヤツらだ！' },
+      { key: 'e4b', name: '雑木林', theme: 'woods', seed: 42, bends: 7, w: 4.8, sub: '白い影が逃げこんだ林の奥', line: 'くらい林だ。足もとに気をつけねえと。', lair: '長老の切り株' }],
+    goal: '雑木林の長老・シロヒゲを倒せ！', place: '夜の公園 → 雑木林',
+    desc: '公園に白い影が出ると、子ネコたちがこわがっている。お化けの正体をたしかめろ！',
+    movie: [['chatora', '公園で白い影が走り回ってるって、子ネコたちがこわがってるよ。'], ['noneko', 'お化けなんかいるかよ。どうせネズミだろ。たしかめてくる！']],
+    intro: ['真夜中の公園か…なんか出そうな雰囲気だな。', '白いネズミは足が速え。身構えたらすぐ横によけるんだ。'],
+    boss: { name: 'シロヒゲ', fur: '#efeae2', belly: '#ffffff', eye: '#ff5a8a', crown: null, patch: false, scale: 2.3, spd: 0.8, summon: 'white',
+      start: [['boss', 'ほっほっ…元気なネコじゃのう。わしはシロヒゲ。この林の長老ネズミじゃ。'], ['noneko', 'じいさんがボスかよ。手かげんはしねえぞ！'], ['boss', 'わしに勝てたら、大王のことを教えてやろう。さあ、来なされ！']],
+      end: [['boss', 'ほっほ…まいった、まいった。約束どおり教えよう。'], ['boss', '大王は港の倉庫に食料を集めておる。満月の宴まで、もう日がないぞ。'], ['noneko', '港の倉庫か…じいさん、ありがとな！'], ['nar', 'シロヒゲは静かに林の奥へ消えていった。']],
+      book: BOOKB('公園の雑木林にすむ年老いた白ネズミ。ネズミたちのあいだでは物知りの長老として知られる。', 'おだやかで、強い者には素直に敬意を払う。大王のやり方には少し反対らしい。', '真っ白な毛とピンクの目。年寄りとは思えない身のこなしで、攻撃がすばやい。') },
+    clear: 'シロヒゲから、大王が港の倉庫に食料を集めていることを聞き出した。' },
+  { n: 5, title: '港の倉庫', mix: { rat: 0.4, armor: 0.3, white: 0.3 },
+    areas: [{ key: 'e5a', name: '夜の波止場', theme: 'pier', seed: 51, bends: 6, w: 4.6, sub: '潮のにおいがする夜の港', line: '波止場にもネズミがうようよいやがる。' },
+      { key: 'e5b', name: '港の倉庫', theme: 'warehouse', seed: 52, bends: 7, w: 5.2, sub: 'コンテナが積まれた大王の食料庫', line: 'コンテナだらけだ…このどれかに食料が？', lair: '倉庫番の詰所' }],
+    goal: '倉庫番・クラバンを倒せ！', place: '夜の波止場 → 港の倉庫',
+    desc: '大王の食料庫は港の倉庫にある。食料を取りもどせば、満月の宴は開けないはずだ！',
+    movie: [['chatora', 'シロヒゲじいさんの話がほんとなら、港の倉庫が大王の食料庫ってわけだね。'], ['noneko', '食料をぜんぶ取りもどせば、宴なんてできやしねえ。行くぜ！']],
+    intro: ['潮のにおいだ…足もとの板がギシギシいってやがる。', '倉庫はこの先だな。'],
+    boss: { name: 'クラバン', fur: '#6a5a4a', belly: '#9a8a72', crown: null, patch: false, helmet: '#e8c45a', scale: 3.0, hpX: 1.15, spd: 1.05, summon: 'armor',
+      start: [['boss', 'オイコラ！ ここは大王さまの倉庫だ。倉庫番のクラバンさまが通さねえぞ！'], ['noneko', 'その食料、町のみんなのもんだろうが！'], ['boss', 'うるせえ！ 宴のじゃまはさせねえ！']],
+      end: [['boss', 'ぐぅ…だ、だが…大王さまの城の地図だけは渡さねえ…'], ['nar', '――そのとき、屋根の上から黒い影が飛びおりた！'], ['nar', 'ネズミ忍者が地図をうばい、屋根の上へ逃げていく！'], ['noneko', 'あっ、待ちやがれ！']],
+      book: BOOKB('港の倉庫を守る力じまんの倉庫番。大王の食料庫の管理をまかされている。', 'まじめで融通がきかない。命令は絶対に守る。', '黄色いヘルメットをかぶった大柄なネズミ。動きはおそいが一撃が重い。') },
+    clear: '倉庫の食料を取りもどした。しかし大王の城の地図は、ネズミ忍者にうばわれてしまった。' },
+  { n: 6, title: '屋根の上の追跡', mix: { ninja: 0.6, white: 0.4 },
+    areas: [{ key: 'e6a', name: '屋根の上', theme: 'rooftop', seed: 61, bends: 6, w: 4.8, sub: '月明かりの屋根づたい', line: '忍者ネズミどもが待ちかまえてやがる！' },
+      { key: 'e6b', name: '時計塔', theme: 'clock', seed: 62, bends: 7, w: 4.6, sub: '町でいちばん高い場所', line: 'カチ、カチ…時計の音がひびいてる。あいつはこの上だ！', lair: '時計塔のてっぺん' }],
+    goal: 'ネズミ忍者・カゲマルから地図を取りもどせ！', place: '屋根の上 → 時計塔',
+    desc: '地図をうばったネズミ忍者は、屋根づたいに時計塔へ逃げた。屋根の上ならネコのほうが上手だ！',
+    movie: [['chatora', 'ネズミ忍者が地図を持って屋根づたいに逃げたって？ 時計塔のほうへ向かったらしいよ。'], ['noneko', '屋根の上なら、ネコのほうが上手だってことを教えてやる！']],
+    intro: ['屋根の上は風が強えな…落ちるなよ、オレ。', '忍者ネズミは攻撃が鋭い。囲まれないようにしねえと。'],
+    boss: { name: 'カゲマル', fur: '#2a2436', belly: '#4a4256', crown: null, patch: false, band: '#c9452f', scale: 2.3, spd: 0.75, summon: 'ninja',
+      start: [['boss', 'しつこいネコでござるな。拙者はカゲマル、大王さまの影でござる。'], ['noneko', '地図を返せ、忍者ネズミ！'], ['boss', '欲しくば力ずくで取ってみるでござる！']],
+      end: [['boss', 'む、無念…この地図、そなたに預けるでござる…'], ['noneko', '地図によると…大王の城は、廃線トンネルのその先か！'], ['boss', '気をつけるでござる…トンネルには鉄の番人がおる…'], ['nar', 'カゲマルは煙のように消えた。']],
+      book: BOOKB('大王に仕えるネズミ忍者。町の屋根を自在に飛びまわり、情報を運んでいる。', '冷静で、ござる口調。負けをいさぎよく認める武士のような心を持つ。', '黒い毛に赤いはちまき。すばやい連続攻撃が得意。') },
+    clear: 'カゲマルから地図を取りもどした。大王の城は、廃線トンネルのその先にある。' },
+  { n: 7, title: '廃線トンネル', mix: { armor: 0.6, rat: 0.4 },
+    areas: [{ key: 'e7a', name: '廃駅', theme: 'station', seed: 71, bends: 6, w: 5.2, sub: 'もう汽車の来ない古い駅', line: 'さびついた駅だな…もう何年も汽車は来てねえのか。' },
+      { key: 'e7b', name: '線路トンネル', theme: 'railTunnel', seed: 72, bends: 7, w: 4.6, sub: '廃線の奥へつづく長いトンネル', line: 'レールがずっと奥まで続いてる…', lair: '鉄の番人の持ち場' }],
+    goal: '鉄の番人・テツネズミを倒せ！', place: '廃駅 → 線路トンネル',
+    desc: '地図の道すじは、廃線トンネルを通っている。トンネルを守る鉄の番人を突破しろ！',
+    movie: [['chatora', '廃線トンネル…昔、汽車が走ってたところだね。中は真っ暗だっていうよ。'], ['noneko', '地図の道すじはこのトンネルの先だ。突っこむぜ！']],
+    intro: ['ここが廃駅か。鉄くさいネズミがいやがる。', 'カブトネズミはかてえ。B攻撃とC攻撃をうまく使っていくぜ。'],
+    boss: { name: 'テツネズミ', fur: '#7a7a84', belly: '#a0a0aa', crown: null, patch: false, helmet: '#8a8fa0', scale: 2.8, hpX: 1.25, spd: 1.0, summon: 'armor',
+      start: [['boss', 'ギギギ…ここを通る者は、このテツネズミが通さない。'], ['noneko', '鉄のよろいか。オレのツメで引っぺがしてやる！'], ['boss', 'ギギ…排除、開始。']],
+      end: [['boss', 'ギ…ギギ…装甲…限界…'], ['noneko', '固えヤツだった…この先が、ゴミ山の要塞か。'], ['nar', 'トンネルの出口の向こうに、ガラクタでできた巨大な要塞が見えた。']],
+      book: BOOKB('廃線トンネルを守る番人。捨てられた鉄くずで自分のよろいを作りあげた。', '無口で機械のよう。与えられた命令をひたすら守る。', '全身をおおう鉄のよろい。体力が多く、なかなか倒れない。') },
+    clear: 'テツネズミを倒し、廃線トンネルをぬけた。その先にはゴミ山の要塞が待っている。' },
+  { n: 8, title: 'ゴミ山の要塞', mix: { rat: 0.3, armor: 0.4, ninja: 0.3 },
+    areas: [{ key: 'e8a', name: 'ゴミ捨て場', theme: 'dump', seed: 81, bends: 6, w: 5.2, sub: 'ガラクタが山と積まれた場所', line: 'くっせえ…ゴミの山だ。' },
+      { key: 'e8b', name: 'ガラクタ要塞', theme: 'fortress', seed: 82, bends: 7, w: 5.0, sub: 'ネズミ軍団の最前線', line: 'ガラクタを組んだ壁…ネズミのくせに器用なもんだ。', lair: '将軍の陣' }],
+    goal: 'ネズミ軍の将軍・ガラクタを倒せ！', place: 'ゴミ捨て場 → ガラクタ要塞',
+    desc: '大王の城への入り口は、ゴミ山の要塞の地下にある。ネズミ軍団の将軍を倒して突破しろ！',
+    movie: [['chatora', 'ゴミ山に要塞だって？ ネズミたちもずいぶん本気だね。'], ['noneko', '城の入り口はあの要塞の地下だ。将軍だろうが何だろうが、ぶっとばす！']],
+    intro: ['ゴミ山の向こうに要塞が見える。', 'ネズミ軍団か…数が多いぜ。まとめてふっとばしてやる！'],
+    boss: { name: 'ガラクタ将軍', fur: '#6a5a3a', belly: '#9a8a62', crown: null, patch: true, helmet: '#c97a3a', scale: 3.1, hpX: 1.2, spd: 0.95, summon: 'ninja',
+      start: [['boss', 'われこそはネズミ軍の将軍、ガラクタなり！ ここから先は一歩も通さぬ！'], ['noneko', '将軍さまのお出ましか。かかってこい！'], ['boss', '全軍、かかれぇ！']],
+      end: [['boss', 'む…むねん…このガラクタ将軍が…'], ['boss', '大臣どのに…知らせねば…'], ['noneko', '要塞の地下に入り口がある…いよいよ地下迷宮だ。'], ['nar', 'ノネコは要塞の奥に、地下へ続く階段を見つけた。']],
+      book: BOOKB('ネズミ軍団をひきいる将軍。ゴミ山にガラクタの要塞を築き、守りをかためている。', 'いばっているが、部下からの人望はあつい。', '鍋のかぶとをかぶった大きなネズミ。子分を呼ぶのが得意。') },
+    clear: 'ガラクタ将軍を倒し、要塞の地下に続く階段を見つけた。' },
+  { n: 9, title: '地下迷宮', mix: { rat: 0.25, white: 0.25, armor: 0.25, ninja: 0.25 },
+    areas: [{ key: 'e9a', name: '古い地下道', theme: 'catacomb', seed: 91, bends: 7, w: 4.6, sub: '大昔に作られた石の地下道', line: 'ネズミどもの気配が、どんどん濃くなってきやがる。' },
+      { key: 'e9b', name: '迷宮の奥', theme: 'maze', seed: 92, bends: 8, w: 4.4, sub: '大王の城へ続く最後の道', line: 'この奥に…大王の城がある。', lair: '大臣の間' }],
+    goal: 'ネズミ大臣・チュウザエモンを倒せ！', place: '古い地下道 → 迷宮の奥',
+    desc: '要塞の地下には、大王の城へ続く迷宮が広がっていた。満月は明日の夜。急げ！',
+    movie: [['chatora', 'いよいよ地下迷宮かい。満月は明日の夜だよ。気をつけてお行き。'], ['noneko', 'まかせとけ。宴が始まる前に、大王をぶったおしてやる！']],
+    intro: ['ひんやりした地下道だ…迷子にならねえようにしねえと。', '行き止まりも多そうだ。ミニマップを見ながら進むぜ。'],
+    boss: { name: 'チュウザエモン', fur: '#4a3a5a', belly: '#7a6a8a', crown: '#c9a3e8', patch: false, scale: 2.6, hpX: 1.2, spd: 0.8, summon: 'ninja',
+      start: [['boss', 'ようこそ、ノネコどの。わたくしはネズミ大臣、チュウザエモンと申します。'], ['noneko', 'あんたが大臣か。大王のところまで案内してもらおうか。'], ['boss', 'ほほ、ご冗談を。宴のじゃまは、ここでおしまいにさせていただきます！']],
+      end: [['boss', 'な、なんと…この大臣めが…'], ['boss', '満月の宴で大王さまが町のネズミをまとめれば…ネコの町は終わりですぞ…'], ['noneko', 'させるかよ。明日の夜、すべてを終わらせてやる！'], ['nar', '迷宮の奥に、大王の城の扉がそびえていた。']],
+      book: BOOKB('ネズミ大王に仕える大臣。宴の準備から軍の指揮まで、すべてを取りしきる。', 'ていねいな口調だが腹黒い。計算高く、すきを見せない。', '紫の冠をかぶった細身のネズミ。攻撃の間合いが読みにくい。') },
+    clear: 'チュウザエモンを倒した。迷宮の奥に、大王の城の扉がそびえている。' },
+  { n: 10, title: 'ネズミ大王の玉座', mix: { rat: 0.2, white: 0.2, armor: 0.3, ninja: 0.3 },
+    areas: [{ key: 'e10a', name: '地下宮殿', theme: 'palace', seed: 101, bends: 7, w: 5.0, sub: '満月の光が差しこむ大王の城', line: 'ここがネズミ大王の城か…もう後もどりはしねえ。' },
+      { key: 'e10b', name: '玉座の間', theme: 'throne', seed: 102, bends: 8, w: 5.0, sub: '満月の宴が始まろうとしている', line: 'ネズミどもが集まってやがる…宴を止めるのは今だ！', lair: 'ネズミ大王の玉座' }],
+    goal: 'ネズミ大王を倒し、満月の宴を止めろ！', place: '地下宮殿 → 玉座の間',
+    desc: 'とうとう満月の夜。ネズミ大王が町をネズミの国にしようとしている。すべての決着をつけろ！',
+    movie: [['chatora', 'とうとう満月の夜だね…ノネコ、あんたなら必ずやれる。基地のみんなで待ってるよ。'], ['noneko', 'へっ、ニボシを用意して待っててくれ。…行ってくる！']],
+    intro: ['満月の光が差しこんでる…ここがネズミ大王の城か。', 'これが最後の戦いだ。行くぜ！'],
+    boss: { name: 'ネズミ大王', cat: '大ボス', fur: '#3a2a2a', belly: '#8a6a5a', crown: '#ffd36b', patch: true, scale: 3.4, hpX: 1.5, spd: 0.75, summon: 'armor',
+      start: [['boss', 'よくぞここまで来たな、ノラネコ。わしこそがネズミ大王である！'], ['noneko', 'お前の宴もここまでだ。この町はネコとネズミ、みんなのもんだ！'], ['boss', 'ネコごときが笑わせる！ 満月の力を得たわしの力、思い知るがいい！']],
+      end: [['boss', 'ば…ばかな…わしが…ネコに……'], ['boss', '…ノネコとやら…その名、ネズミの国にもとどろかせておこう…'], ['noneko', 'へっ、ネコの国にもとどろかせてやるさ。'], ['nar', '満月の宴は止められ、町に平和がもどった。ノラネコ・ノネコの名は、猫界じゅうに知れ渡った――'], ['nar', 'その夜、空にひとすじの光が流れ、町はずれに何かが落ちた…（つづく）']],
+      book: BOOKB('地下の城に君臨するネズミたちの王。満月の宴で町じゅうのネズミを集め、町をネズミの国にしようとたくらんでいた。', 'ごうまんで欲ばり。だが、強い者は素直に認める器の大きさも持つ。', '金の王冠に大きな体。突進、回転、ヘドロ弾、子分呼びのすべてを使いこなす。') },
+    clear: 'ネズミ大王を倒し、満月の宴を止めた。ノネコの名は猫界じゅうに知れ渡った！' }
+];
+// 自動マップを登録（エリアのキーを areas に入れなおす）
+for (const ep of EPISODES) {
+  ep.rec = ep.n * 3;
+  if (typeof ep.areas[0] === 'object') {
+    const defs = ep.areas;
+    defs.forEach((a, i) => { const D = genArea(a.key, Object.assign({ end: i === defs.length - 1 ? 'arena' : 'tunnel', ep: ep.n }, a)); D.key = a.key; D.next = defs[i + 1] ? defs[i + 1].key : null; });
+    ep.areas = defs.map((a) => a.key);
+  }
+}
+AREA_DEF.alley.key = 'alley'; AREA_DEF.sewer.key = 'sewer';
+AREA_DEF.alley.next = 'sewer'; AREA_DEF.sewer.lair = '大ドブネズミのねぐら';
+AREA_DEF.sewer.sub = 'くねくね道の先に、大ドブネズミのねぐらがある'; AREA_DEF.sewer.line = 'うっ…ひでえニオイだ。でも、ここで引き返すわけにはいかねえ。';
+const EP = () => EPISODES[(S.ep || 1) - 1];
+const isCleared = (n) => !!(state.cleared && state.cleared[n]) || (n === 1 && !!state.cleared1);
+function bossLook(b) { return { boss: true, fur: b.fur, belly: b.belly, eye: b.eye, crown: b.crown, patch: b.patch, band: b.band, helmet: b.helmet }; }
+function pickType(mix) {
+  let r = Math.random();
+  for (const k in mix) { r -= mix[k]; if (r <= 0) return k; }
+  return Object.keys(mix)[0];
+}
+// 図鑑とプレビューに、敵の種類と各話のボスを登録
+for (const k of ['white', 'armor', 'ninja']) PV_MODELS[k] = () => ({ kind: 'rat', o: buildRat(RTYPES[k].look), scale: RTYPES[k].scale });
+EPISODES.forEach((ep) => { PV_MODELS['boss' + ep.n] = () => ({ kind: 'rat', o: buildRat(bossLook(ep.boss)), scale: 1.35 }); });
+(function () {
+  const i = BOOK.findIndex((b) => b.id === 'boss');
+  BOOK.splice(i, BOOK.length - i);
+  const ENEMY_BOOK = {
+    white: BOOKB('公園や林にすむ白いネズミ。ドブネズミより小さいが、とにかく足が速い。', 'すばしっこくて落ち着きがない。群れで走り回る。', '真っ白な毛とピンクの目。体力は少ないが、すぐに間合いをつめてくる。'),
+    armor: BOOKB('空きカンのフタやバケツをかぶって身を守るネズミ。ネズミ軍団の守りのかなめ。', 'がまん強く、一歩も引かない。', '金属のかぶと。体力が多く動きはおそいが、一撃が重い。'),
+    ninja: BOOKB('大王に仕えるネズミ忍者の手下たち。屋根や暗がりから音もなく近づいてくる。', '命令に忠実で、無口。', '黒い毛に赤いはちまき。攻撃が鋭く、足も速い。')
+  };
+  for (const k of ['white', 'armor', 'ninja']) BOOK.push(Object.assign({ id: k, model: k, name: RTYPES[k].name, cat: '敵', shadow: true, open: () => !!(state.seen || {})[k], hint: 'まだ出会っていない。' }, ENEMY_BOOK[k]));
+  for (const ep of EPISODES) BOOK.push(Object.assign({ id: 'boss' + ep.n, model: 'boss' + ep.n, name: ep.boss.name, cat: ep.boss.cat || 'ボス', shadow: true,
+    open: () => !!(state.seen || {})['boss' + ep.n] || (ep.n === 1 && !!(state.seen || {}).boss), hint: `第${ep.n}話に登場するらしい。` }, ep.boss.book));
+  BOOK.find((b) => b.id === 'rat').shadow = true;
+  // ミッション：メインは第1〜10話、ミニストーリーは第1話の下にぶら下がる
+  const minis = MISSIONS.filter((m) => m.type === 'mini');
+  MISSIONS.length = 0;
+  for (const ep of EPISODES) MISSIONS.push({ id: 'm' + ep.n, type: 'main', ep: ep.n, title: ep.title, goal: ep.goal, place: ep.place, rank: '-', time: 'なし', rec: ep.rec, play: true, desc: ep.desc,
+    reward: () => 'ニボシ ' + (isCleared(ep.n) ? 20 + 10 * ep.n : 60 + 40 * ep.n), open: () => ep.n === 1 || isCleared(ep.n - 1), done: () => isCleared(ep.n) });
+  for (const m of minis) { m.parent = 1; m.open = () => isCleared(1); MISSIONS.push(m); }
+})();
+
+/* ---------- エリアの切りかえ ---------- */
+function goNext() {
+  if (S.loading) return;
+  const D = AREA_DEF[S.area], next = D.next || EP().areas[EP().areas.indexOf(S.area) + 1];
+  if (!next) return;
+  const N = AREA_DEF[next];
+  S.loading = true; keys.clear();
+  const L = $('#loadArea'); L.hidden = false;
+  $('#loadArea strong').textContent = N.name + 'へ…';
+  $('#loadArea i').style.width = '0%';
+  requestAnimationFrame(() => { $('#loadArea i').style.width = '100%'; });
+  setTimeout(() => {
+    loadArea(next);
+    S.darkT = 1;
+    setTimeout(() => {
+      L.hidden = true; S.loading = false;
+      banner(N.name, N.sub || '', '#9be37a', 'AREA');
+      if (!S.said[next] && N.line) { S.said[next] = true; talk([{ who: 'noneko', text: N.line }]); }
+    }, 1100);
+  }, 80);
+}
+
 /* ---------- エリアの読み込み ---------- */
 function spawnArea(D) {
   const L = pathLength(D.path);
@@ -2582,7 +3013,7 @@ function spawnArea(D) {
         px = p.x + p.dz * lat + p.dx * lon; pz = p.z - p.dx * lat + p.dz * lon;
         if (stageWalkable(px, pz, 0.5)) break;
       }
-      makeRat(px, pz);
+      makeRat(px, pz, pickType(EP().mix));
     }
   }
   // 分かれ道の奥：ごほうび（ニボシの山、ときどきカリカリ）と見張り
@@ -2591,7 +3022,7 @@ function spawnArea(D) {
     const L2 = Math.hypot(e.x - q.x, e.z - q.z), dx = (e.x - q.x) / L2, dz = (e.z - q.z) / L2;
     for (let k = 0; k < 3; k++) dropFish(e.x - dx * 0.6 + dz * (k - 1) * 0.8, e.z - dz * 0.6 - dx * (k - 1) * 0.8, 10, true);
     if (bi % 2 === 1) dropKari(e.x - dx * 1.8, e.z - dz * 1.8);
-    for (let k = 0; k < b.guard; k++) makeRat(e.x - dx * (2.5 + k), e.z - dz * (2.5 + k) + (k ? 0.8 : -0.8));
+    for (let k = 0; k < b.guard; k++) makeRat(e.x - dx * (2.5 + k), e.z - dz * (2.5 + k) + (k ? 0.8 : -0.8), pickType(EP().mix));
   });
   const end = D.tunnelFrom ? pathLength(D.path.slice(0, D.tunnelFrom + 1)) - 4 : L - 4;
   let side = 1;
@@ -2605,7 +3036,8 @@ function loadArea(key) {
   clearEntities();
   if (!S.built) buildStageRoot();
   const D = AREA_DEF[key];
-  if (!D.root) (key === 'alley' ? buildAlley : buildSewer)();
+  if (!D.root) { if (key === 'alley') buildAlley(); else if (key === 'sewer') buildSewer(); else buildGen(key); }
+  if (!ENV[key]) ENV[key] = D.gen ? THEMES[D.theme].env : ENV[key];
   for (const k in AREA_DEF) if (AREA_DEF[k].root) AREA_DEF[k].root.visible = (k === key);
   S.area = key; PATH = D.path; PATHS = D.paths; ARENA = D.arena; S.obstacles = D.obstacles;
   S.bossStarted = false; S.bossLock = false;
@@ -2615,32 +3047,14 @@ function loadArea(key) {
   spawnArea(D);
   if (ARENA) makeBoss();
   $('#bossBar').hidden = true;
-  setEnv(D.env);
+  setEnv(D.gen ? key : D.env);
 }
-function goSewer() {
-  if (S.loading) return;
-  S.loading = true;
-  keys.clear();
-  const L = $('#loadArea'); L.hidden = false;
-  $('#loadArea i').style.width = '0%';
-  requestAnimationFrame(() => { $('#loadArea i').style.width = '100%'; });
-  setTimeout(() => {
-    loadArea('sewer');
-    S.darkT = 1;
-    setTimeout(() => {
-      L.hidden = true; S.loading = false;
-      banner('下水道', 'くねくね道の先に、大ドブネズミのねぐらがある', '#9be37a', 'AREA');
-      if (!S.said.sewer) {
-        S.said.sewer = true;
-        talk([{ who: 'noneko', text: 'うっ…ひでえニオイだ。でも、ここで引き返すわけにはいかねえ。' }]);
-      }
-    }, 1100);
-  }, 80);
-}
-
 /* ---------- 敵 ---------- */
-function makeRat(x, z) {
-  const m = buildRat();
+function makeRat(x, z, type) {
+  type = type || 'rat';
+  const T = RTYPES[type], n = S.ep || 1;
+  const m = buildRat(T.look);
+  m.root.scale.setScalar(T.scale);
   S.ents.add(m.root);
   const bg = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#1a1226', depthTest: false }));
   bg.scale.set(0.84, 0.12, 1); bg.position.y = 1.15; bg.renderOrder = 5;
@@ -2648,7 +3062,8 @@ function makeRat(x, z) {
   fg.center.set(0, 0.5); fg.scale.set(0.78, 0.07, 1); fg.position.set(-0.39, 1.15, 0); fg.renderOrder = 6;
   bg.visible = fg.visible = false;
   m.root.add(bg); m.root.add(fg);
-  const e = { m, x, z, yaw: Math.random() * 6.28, hp: 36, max: 36, r: 0.5, atk: 16, speed: 3.3, aggro: 8.5, state: 'idle', t: 0, cd: 0.5, flash: 0, bars: [bg, fg] };
+  const hp = Math.round(72 * T.hp * epHpMul(n));
+  const e = { m, type, x, z, yaw: Math.random() * 6.28, hp, max: hp, r: 0.5 * T.scale, atk: 24 * T.atk * epAtkMul(n), speed: T.spd, aggro: 8.5, state: 'idle', t: 0, cd: 0.5, flash: 0, bars: [bg, fg] };
   m.root.position.set(x, 0.1, z);
   S.enemies.push(e);
   return e;
@@ -2743,7 +3158,7 @@ function killRat(e) {
   e.state = 'dead'; e.t = 0;
   e.bars[0].visible = e.bars[1].visible = false;
   S.stats.kills++;
-  state.seen = state.seen || {}; state.seen.rat = true;
+  state.seen = state.seen || {}; state.seen[e.type || 'rat'] = true;
   for (let k = 0; k < 4; k++) spawnDust(e.x + (Math.random() - 0.5) * 0.6, e.z + (Math.random() - 0.5) * 0.6);
   const n = Math.random() < 0.35 ? 3 : 2;
   for (let k = 0; k < n; k++) dropFish(e.x, e.z, 5);
@@ -2826,13 +3241,18 @@ function splat(x, z, r) {
 /* ---------- 大ドブネズミ ---------- */
 const BOSS_SCALE = 2.6;
 function makeBoss() {
-  const m = buildRat({ boss: true, fur: '#5e5248', belly: '#9c8b74' });
-  m.root.scale.setScalar(BOSS_SCALE);
+  const cfg = EP().boss, n = EP().n;
+  const m = buildRat(bossLook(cfg));
+  m.root.scale.setScalar(cfg.scale || BOSS_SCALE);
   S.ents.add(m.root);
   const zzz = textSprite('Zzz', '#d9d0f2', 64); zzz.scale.set(1.2, 0.6, 1); S.ents.add(zzz);
   const stars = new THREE.Group(); S.ents.add(stars); stars.visible = false;
   for (let k = 0; k < 3; k++) { const st = new THREE.Mesh(new THREE.OctahedronGeometry(0.16), basic('#ffd36b')); stars.add(st); }
-  const B = { m, boss: true, x: ARENA.x, z: ARENA.z - 5.5, yaw: 0, hp: 600, max: 600, r: 1.5, state: 'sleep', t: 0, flash: 0, sumCD: 6, spinA: 0, zzz, stars, balls: [] };
+  // 体力・攻撃力：第1話は体力1200・攻撃1.5倍。以降は推奨レベルに合わせて上がる
+  const hp = Math.round(1200 * epHpMul(n) * (cfg.hpX || 1));
+  const sc = (cfg.scale || BOSS_SCALE) / BOSS_SCALE;
+  const B = { m, boss: true, cfg, x: ARENA.x, z: ARENA.z - 5.5, yaw: 0, hp, max: hp, r: 1.5 * sc, atk: 1.5 * epAtkMul(n), spd: cfg.spd || 1, summon: cfg.summon || 'rat',
+    state: 'sleep', t: 0, flash: 0, sumCD: 6, spinA: 0, zzz, stars, balls: [] };
   m.root.position.set(B.x, 0.1, B.z);
   S.boss = B;
   return B;
@@ -2845,22 +3265,19 @@ function startBossFight() {
   S.bossStarted = true; S.bossLock = true;
   const B = S.boss;
   B.state = 'wake';
-  state.seen = state.seen || {}; state.seen.boss = true; save();
-  talk([
-    { who: 'boss', text: 'チュッチュッ…ネコが一匹、わざわざ食われに来たのか？' },
-    { who: 'noneko', text: 'お前がウワサの大ドブネズミか。オレはノネコ。お前を倒して、この名を猫界にとどろかせてやる！' },
-    { who: 'boss', text: '生意気なネコめ！ この下水道はオレ様のナワバリだ。ひねりつぶしてくれる！' }
-  ], () => {
+  state.seen = state.seen || {}; state.seen['boss' + EP().n] = true; save();
+  $('#bossBar b').textContent = B.cfg.name;
+  talk(B.cfg.start.map(([who, text]) => ({ who, text })), () => {
     B.state = 'roar'; B.t = 1.2; B.zzz.visible = false;
     $('#bossBar').hidden = false; updateBossBar();
-    banner('大ドブネズミ', '赤い範囲に入らないようにしよう', '#ff6a4d', 'BOSS');
+    banner(B.cfg.name, '赤い範囲に入らないようにしよう', '#ff6a4d', 'BOSS');
     S.shake = 0.35;
   });
 }
 function bossAttack(d) {
   const B = S.boss;
   const rage = B.hp < B.max * 0.5;
-  const tf = rage ? 0.8 : 1;
+  const tf = (rage ? 0.8 : 1) * B.spd;
   const adds = S.enemies.filter((e) => e.state !== 'dead').length;
   const dx = ps.x - B.x, dz = ps.z - B.z;
   if (B.hp < B.max * 0.7 && B.sumCD <= 0 && adds < 2) { B.state = 'summon'; B.t = 0.9; B.sumCD = 16; return; }
@@ -2925,7 +3342,7 @@ function updateBoss(dt) {
     case 'idle':
       B.t -= dt;
       faceTo(B, Math.atan2(dx, dz), dt * 0.8);
-      if (d > 3.4) { entMove(B, dx / d * (1.8 + (rage ? 0.7 : 0)) * dt, dz / d * (1.8 + (rage ? 0.7 : 0)) * dt); move = 0.6; }
+      if (d > 3.4) { entMove(B, dx / d * (1.8 + (rage ? 0.7 : 0)) / B.spd * dt, dz / d * (1.8 + (rage ? 0.7 : 0)) / B.spd * dt); move = 0.6; }
       if (B.t <= 0 && !S.over) bossAttack(d);
       break;
     case 'teleCharge':
@@ -2936,7 +3353,7 @@ function updateBoss(dt) {
     case 'charge': {
       B.t -= dt; lunge = true; move = 1;
       const ok = entMove(B, B.lx * 15 * dt, B.lz * 15 * dt);
-      if (!B.hit && d < B.r + 0.6) { B.hit = true; damagePlayer(28, B.x, B.z, 9); }
+      if (!B.hit && d < B.r + 0.6) { B.hit = true; damagePlayer(28 * B.atk, B.x, B.z, 9); }
       if (B.t <= 0 || !ok) {
         B.state = 'stun'; B.t = 1.5; S.shake = 0.3;
         popNum(B.x, 3.4, B.z, 'ピヨピヨ', 'alert');
@@ -2957,7 +3374,7 @@ function updateBoss(dt) {
       if (B.t <= 0) {
         B.tele.remove(); S.teles.splice(S.teles.indexOf(B.tele), 1);
         B.state = 'spin'; B.t = 0.5;
-        if (d < 4.4 + 0.3) damagePlayer(22, B.x, B.z, 8);
+        if (d < 4.4 + 0.3) damagePlayer(22 * B.atk, B.x, B.z, 8);
         S.shake = 0.2;
       }
       break;
@@ -2978,7 +3395,7 @@ function updateBoss(dt) {
         for (const tg of B.targets) {
           tg.T.remove(); S.teles.splice(S.teles.indexOf(tg.T), 1); S.ents.remove(tg.ball);
           splat(tg.x, tg.z, 1.6);
-          if (!hit && Math.hypot(ps.x - tg.x, ps.z - tg.z) < 1.7 + 0.25) { hit = true; damagePlayer(20, tg.x, tg.z, 5); }
+          if (!hit && Math.hypot(ps.x - tg.x, ps.z - tg.z) < 1.7 + 0.25) { hit = true; damagePlayer(20 * B.atk, tg.x, tg.z, 5); }
         }
         B.targets = []; B.state = 'idle'; B.t = rage ? 0.7 : 1.0; S.shake = 0.12;
       }
@@ -2989,7 +3406,7 @@ function updateBoss(dt) {
       if (B.t <= 0) {
         for (const s of [-1, 1]) {
           const x = B.x + Math.cos(B.yaw) * s * 2.6, z = B.z - Math.sin(B.yaw) * s * 2.6;
-          const e = makeRat(stageWalkable(x, z) ? x : B.x, stageWalkable(x, z) ? z : B.z); e.state = 'chase'; e.aggro = 99;
+          const e = makeRat(stageWalkable(x, z) ? x : B.x, stageWalkable(x, z) ? z : B.z, B.summon); e.state = 'chase'; e.aggro = 99;
           for (let k = 0; k < 3; k++) spawnDust(e.x, e.z);
         }
         popNum(B.x, 3.4, B.z, '子分ども、かかれ！', 'alert');
@@ -3025,12 +3442,7 @@ function bossDefeated() {
   for (let k = 0; k < 12; k++) dropFish(B.x, B.z, 5);
   setTimeout(() => {
     $('#bossBar').hidden = true;
-    talk([
-      { who: 'boss', text: 'ぐぬぬ…こ、このオレ様が…ネコごときに…' },
-      { who: 'noneko', text: 'へっ、見たか！ これでノネコの名も、少しは猫界に知れ渡るってもんだ。' },
-      { who: 'nar', text: '――そのとき、下水道のさらに奥から、地鳴りのような鳴き声がひびいた。' },
-      { who: 'noneko', text: '…まだ奥に、もっとでかいヤツがいるってのか？ 上等だ！' }
-    ], showClear);
+    talk(B.cfg.end.map(([who, text]) => ({ who, text })), showClear);
   }, 1800);
 }
 
@@ -3306,19 +3718,19 @@ function playerDown() {
   }), 1300);
 }
 function showClear() {
-  const first = !state.cleared1;
-  const bonus = first ? 100 : 30;
-  state.cleared1 = true; state.nibosi += bonus;
+  const ep = EP(), first = !isCleared(ep.n);
+  const bonus = first ? 60 + 40 * ep.n : 20 + 10 * ep.n;
+  state.cleared = state.cleared || {}; state.cleared[ep.n] = true; if (ep.n === 1) state.cleared1 = true; state.nibosi += bonus;
   const used = ITEMS.filter((i) => state.items[i.id]).map((i) => i.name);
   state.items = { kari: 0, mata: 0, tsume: 0 }; save(); refreshHud(); refreshItemBtn();
   openInfo({
-    kicker: 'STAGE CLEAR', title: '第1話 クリア！', accent: '#ffb547', noClose: true,
+    kicker: 'STAGE CLEAR', title: `第${ep.n}話 クリア！`, accent: '#ffb547', noClose: true,
     html: `<div class="statgrid">
-        <div class="stat"><small>倒したドブネズミ</small><b>${S.stats.kills}</b></div>
+        <div class="stat"><small>倒したネズミ</small><b>${S.stats.kills}</b></div>
         <div class="stat"><small>拾ったニボシ</small><b>${S.stats.nibosi}</b></div>
         <div class="stat"><small>クリアボーナス</small><b>${bonus}</b></div>
         <div class="stat"><small>残りHP</small><b>${S.hp}</b></div></div>
-      <p class="lead">大ドブネズミを倒し、ノネコの名が路地裏に広まりはじめた。${first ? 'ネコ図鑑に記録が増えました。' : ''}</p>
+      <p class="lead">${ep.clear}${first ? ' ネコ図鑑に記録が増えました。' + (ep.n < 10 ? `第${ep.n + 1}話が出撃ゲートに追加されました。` : '') : ''}</p>
       ${used.length ? `<p class="note">使った道具：${used.join('・')}（クリアしたのでなくなりました）</p>` : ''}
       <div class="actions"><button class="btn" data-act="home">基地にもどる</button><button class="btn ghost" data-act="retry">もう一度遊ぶ</button></div>`
   });
@@ -3332,9 +3744,14 @@ function talk(lines, done) {
   $('#dlg').hidden = false; keys.clear();
   showLine();
 }
+function bossFace() {
+  const k = 'boss' + EP().n;
+  if (!faces[k]) { const r = buildRat(bossLook(EP().boss)); animateRat(r, 0.01, {}); faces[k] = renderPortrait(r.root, [0.55, 0.8, 1.55], [0, 0.52, 0.35]); }
+  return faces[k];
+}
 function showLine() {
   const l = dlg.lines[dlg.i];
-  const who = { noneko: ['ノネコ', faces.noneko, '#ffb547'], boss: ['大ドブネズミ', faces.boss, '#ff6a4d'], rat: ['ドブネズミ', faces.rat, '#ff6a4d'], nar: ['', '', '#b9b0d6'] }[l.who];
+  const who = { noneko: ['ノネコ', faces.noneko, '#ffb547'], boss: [EP().boss.name, bossFace(), '#ff6a4d'], rat: ['ドブネズミ', faces.rat, '#ff6a4d'], nar: ['', '', '#b9b0d6'] }[l.who];
   $('#dName').textContent = who[0];
   $('#dName').hidden = !who[0];
   const img = $('#dImg'); img.hidden = !who[1]; if (who[1]) img.src = who[1];
@@ -3364,10 +3781,12 @@ function setEnv(k) {
   scene.background.setHex(e.bg); scene.fog.color.setHex(e.bg); scene.fog.near = e.fog[0]; scene.fog.far = e.fog[1];
   hemi.color.setHex(e.sky); hemi.groundColor.setHex(e.gnd); hemi.intensity = e.hi;
   renderer.setClearColor(e.bg, 1);
-  if (S.lamp) S.lamp.intensity = k === 'sewer' ? 0.9 : 0;
+  if (S.lamp) S.lamp.intensity = (k === 'sewer' || e.lamp) ? 0.9 : 0;
 }
-function enterStage(fromMovie) {
+function enterStage(fromMovie, ep) {
   closePanel();
+  S.ep = ep || S.ep || 1;
+  $('#titleCard small').textContent = `STORY 第${EP().n}話`; $('#titleCard strong').textContent = EP().title;
   if (!S.built) buildStageRoot();
   mode = 'stage';
   world.visible = false; S.root.visible = true;
@@ -3377,8 +3796,7 @@ function enterStage(fromMovie) {
   setHint();
   const coarse = matchMedia('(pointer: coarse)').matches;
   const intro = () => talk([
-    { who: 'noneko', text: 'ここが基地の裏の路地裏だ。この先の下水道に、ウワサの大ドブネズミがいる。' },
-    { who: 'noneko', text: '道はけっこう長えな…ドブネズミどもを片づけながら進むとするか。' },
+    ...EP().intro.map((text) => ({ who: 'noneko', text })),
     { who: 'nar', text: coarse
       ? '右下のボタンでひっかく。スティックを端まで倒すと走る。画面をスライドすると視点を回せる。'
       : 'スペースキーかクリックでひっかく。Shiftで走る。ドラッグで視点を回せる。' }
@@ -3409,7 +3827,7 @@ function resetStage(areaKey) {
   cam.yaw = 0; cam.elev = CAM_ELEV;
   ps.cd = { B: 0, C: 0 }; ps.skill = null; ps.spinA = 0; ps.invul = 0; cdUI.B = cdUI.C = -1;
   S.items = Object.assign({ kari: 0, mata: 0, tsume: 0 }, state.items); // やり直すたびに準備した道具がそろった状態に戻る
-  loadArea(areaKey || 'alley');
+  loadArea(areaKey || EP().areas[0]);
   $('#dark').style.opacity = '0';
   updateHpBar(); refreshItemBtn(); refreshSkillBtns();
 }
@@ -3438,9 +3856,12 @@ function updateStage(dt, paused) {
   // 真っ暗なトンネル：奥に進むほど暗くなり、一定まで進むと下水道を読み込む
   const D = AREA_DEF[S.area];
   let dark = 0;
-  if (S.area === 'alley') {
-    dark = THREE.MathUtils.clamp((D.tunnelZ + 3 - ps.z) / (D.tunnelZ + 3 - D.loadZ), 0, 1);
-    if (ps.z < D.loadZ && !S.over) goSewer();
+  if (D.tunnelFrom && !ARENA) {
+    const M = D.path[D.tunnelFrom], E = D.path[D.path.length - 1];
+    const L = Math.hypot(E.x - M.x, E.z - M.z), ux = (E.x - M.x) / L, uz = (E.z - M.z) / L;
+    const t = (ps.x - M.x) * ux + (ps.z - M.z) * uz;
+    dark = THREE.MathUtils.clamp((t + 3) / (L - 1), 0, 1);
+    if (t > L - 4 && !S.over) goNext();
   }
   if (S.darkT > 0) { S.darkT = Math.max(0, S.darkT - dt * 0.8); dark = Math.max(dark, S.darkT); }
   $('#dark').style.opacity = S.loading ? '1' : String(dark);
@@ -3474,15 +3895,16 @@ function fadeOccluders(D) {
     const lineY = 0.8 + (cy - 0.8) * Math.max(0, t - 1.6) / L;
     const block = t > 0.5 && t < L + 1 && perp < 3.4 && o.h > lineY;
     const target = block ? 0.28 : 1;
-    const mat = o.m.material;
-    if (Math.abs(mat.opacity - target) > 0.01) {
-      mat.transparent = true;
-      mat.opacity += (target - mat.opacity) * 0.25;
-      if (mat.opacity > 0.98) { mat.opacity = 1; mat.transparent = false; }
-      mat.depthWrite = mat.opacity > 0.9;
-      o.m.children[0].visible = mat.opacity > 0.9;
-      mat.needsUpdate = true;
-    }
+    if (o.op == null) o.op = 1;
+    if (Math.abs(o.op - target) < 0.01) continue;
+    o.op += (target - o.op) * 0.25;
+    if (o.op > 0.98) o.op = 1;
+    const solid = o.op > 0.9;
+    o.m.traverse((c) => {
+      if (!c.isMesh) return;
+      if (c.material.type === 'ShaderMaterial') { c.visible = solid; return; }
+      c.material.transparent = o.op < 1; c.material.opacity = o.op; c.material.depthWrite = solid; c.material.needsUpdate = true;
+    });
   }
 }
 /* ---------- ミニマップ（ステージ） ---------- */
@@ -3571,8 +3993,9 @@ function flash(on) {
 }
 $('#cineSkip').addEventListener('click', (e) => { e.stopPropagation(); if (cine.skip) cine.skip(); else endCine(); });
 // 出撃ムービー：基地 → 道具屋でウワサを聞く → 決意 → ゲートへ → 出撃
-function departMovie() {
+function departMovie(epn) {
   closePanel();
+  const ep = EPISODES[(epn || 1) - 1];
   const shop = 3, gate = 0;
   const shopYaw = () => ROOMS[shop].group.rotation.y + Math.PI;
   const gateYaw = () => ROOMS[gate].group.rotation.y + Math.PI;
@@ -3580,24 +4003,25 @@ function departMovie() {
   let attacked = false;
   const go = () => { cine.skip = null; flash(true); setTimeout(() => endCine(), 520); };
   cine.skip = go;
+  const lines = ep.movie || [['chatora', '聞いたかい、ノネコ。下水道に“大ドブネズミ”ってのが住みついて、町のネコたちが困ってるらしいよ。'], ['noneko', '大ドブネズミ…？ へっ、そいつを倒せば、オレの名も猫界にとどろくってもんだ！']];
   playCine([
     {
       dur: 4.4, cam: [[0, 34, 30], [0, 22, 19]], look: [[0, 0, -6], [0, 0, -1]],
-      cap: { who: 'nar', text: '夜の路地裏にある、ノラネコたちの隠れ家――ねこだまり基地。' },
+      cap: { who: 'nar', text: ep.n === 1 ? '夜の路地裏にある、ノラネコたちの隠れ家――ねこだまり基地。' : `第${ep.n}話「${ep.title}」` },
       enter: () => put(shop, 0, 0.2, shopYaw())
     },
     {
       dur: 5.0, cam: [RW(shop, 3.6, 2.6, 1.6), RW(shop, 2.7, 2.1, 0.6)], look: [RW(shop, 0, 1.1, -1.2), RW(shop, 0, 1.0, -1.3)],
-      cap: { who: 'chatora', text: '聞いたかい、ノネコ。下水道に“大ドブネズミ”ってのが住みついて、町のネコたちが困ってるらしいよ。' }
+      cap: { who: lines[0][0], text: lines[0][1] }
     },
     {
       dur: 4.6, cam: [RW(shop, -1.4, 1.5, -0.9), RW(shop, -0.95, 1.35, -0.7)], look: [RW(shop, 0, 1.2, 0.2), RW(shop, 0, 1.15, 0.2)],
-      cap: { who: 'noneko', text: '大ドブネズミ…？ へっ、そいつを倒せば、オレの名も猫界にとどろくってもんだ！' },
+      cap: { who: lines[1][0], text: lines[1][1] },
       update: (k) => { if (k > 0.62 && !attacked) { attacked = true; ps.mode = 'attack'; ps.actionT = 0; } }
     },
     {
       dur: 4.4, cam: [RW(gate, 1.8, 2.6, 8.0), RW(gate, 0.7, 2.1, 3.0)], look: [RW(gate, 0, 1.4, -2.6), RW(gate, 0, 1.5, -2.6)],
-      cap: { who: 'nar', text: '目指すは家の裏の路地裏、その先の下水道。ノネコ、出撃！' },
+      cap: { who: 'nar', text: `目指すは${ep.place.replace(' → ', '、その先の')}。ノネコ、出撃！` },
       enter: () => put(gate, 0, 4.0, gateYaw()),
       update: (k) => { cine.walk = 1; const v = ROOMS[gate].group.localToWorld(new THREE.Vector3(0, 0, 4.0 - 5.2 * k)); ps.x = v.x; ps.z = v.z; }
     },
@@ -3606,7 +4030,7 @@ function departMovie() {
       enter: () => flash(true),
       update: (k) => { cine.walk = 1; const v = ROOMS[gate].group.localToWorld(new THREE.Vector3(0, 0, -1.2 - 1.0 * k)); ps.x = v.x; ps.z = v.z; }
     }
-  ], () => { cine.skip = null; enterStage(true); });
+  ], () => { cine.skip = null; enterStage(true, ep.n); });
 }
 
 /* ---------- 汎用パネル ---------- */
@@ -3623,7 +4047,7 @@ function openInfo(o) {
 function openMenu() {
   if (mode !== 'stage' || S.over) return;
   openInfo({
-    kicker: '第1話 下水道の大ドブネズミ', title: 'メニュー', accent: '#8fd3ec',
+    kicker: `第${EP().n}話 ${EP().title}`, title: 'メニュー', accent: '#8fd3ec',
     html: `<p class="lead">ゲームを一時停止しています。</p>
       <div class="actions"><button class="btn" data-act="resume">つづける</button><button class="btn ghost" data-act="retry">最初からやり直す</button><button class="btn ghost" data-act="home">基地にもどる</button></div>`
   });
@@ -3818,7 +4242,7 @@ function start() {
     $('#loading').classList.add('done');
     banner('ねこだまり基地', '路地裏にあるノネコたちの隠れ家', '#ffb547', 'HOME');
     requestAnimationFrame(step);
-    window.__nk = { useSkill, damagePlayer, exitStage, state, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goSewer, get ARENA() { return ARENA; } };
+    window.__nk = { useSkill, damagePlayer, exitStage, state, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goNext, EPISODES, isCleared, get ARENA() { return ARENA; } };
   } catch (err) {
     console.error(err);
     $('#loadMsg').className = 'err';
