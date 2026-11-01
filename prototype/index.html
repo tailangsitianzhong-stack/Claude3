@@ -2714,7 +2714,7 @@ function buildAlley() {
   g1.position.set((bb.x0 + bb.x1) / 2, -0.1, (bb.z0 + bb.z1) / 2); g1.receiveShadow = true; R.add(g1);
   alleyGroundTex.repeat.set(30, 40);
   const darkM = new THREE.MeshBasicMaterial({ color: '#000000' });
-  const alleyM = toon('#4c4664', { map: tileTexW });
+  const alleyM = toon('#4c4664', { map: tileTexW, emissive: new THREE.Color('#4c4664').multiplyScalar(0.18) });
   buildPathFloor(R, path, { mat: alleyM, darkMat: darkM, top: FLOOR.ALLEY, thick: 0.16, dark: (i) => i >= D.tunnelFrom });
   for (const bp of D.branchPaths) buildPathFloor(R, bp, { mat: alleyM, top: FLOOR.ALLEY, thick: 0.16 });
   buildDeadEnds(R, D, toon('#6a5a48', { map: plankTex }), 1.8);
@@ -2957,7 +2957,7 @@ function buildGen(key) {
     const g = new THREE.Mesh(box(W, 0.2, H), toon(T.ground, { map: alleyGroundTex })); g.position.set(cx, -0.1, cz); g.receiveShadow = true; R.add(g);
   }
   const top = T.water ? FLOOR.SEWER : FLOOR.ALLEY, thick = T.water ? 0.7 : 0.16;
-  const pm = toon(T.path, { map: PATH_TEX[T.tex] }), em = T.water ? toon(T.edge, { map: PATH_TEX[T.tex] }) : null;
+  const pm = toon(T.path, { map: PATH_TEX[T.tex], emissive: new THREE.Color(T.path).multiplyScalar(0.18) }), em = T.water ? toon(T.edge, { map: PATH_TEX[T.tex] }) : null;
   const darkM = new THREE.MeshBasicMaterial({ color: '#000000' });
   buildPathFloor(R, path, { mat: pm, darkMat: darkM, top, thick, edge: em, dark: D.tunnelFrom ? (i) => i >= D.tunnelFrom : null });
   for (const bp of D.branchPaths) buildPathFloor(R, bp, { mat: pm, top, thick, edge: em });
@@ -3264,6 +3264,10 @@ function loadArea(key) {
   if (!D.root) { if (D.town) buildTown(key); else if (key === 'alley') buildAlley(); else if (key === 'sewer') buildSewer(); else buildGen(key); }
   if (!ENV[key]) ENV[key] = D.gen ? THEMES[D.theme].env : ENV[key];
   for (const k in AREA_DEF) if (AREA_DEF[k].root) AREA_DEF[k].root.visible = (k === key);
+  // ほかのエリアで半透明のまま止まった建物を元にもどす
+  for (const k in AREA_DEF) for (const o of AREA_DEF[k].occluders || []) if (o.op != null && o.op < 1) {
+    o.op = 1; o.m.traverse((c) => { if (!c.isMesh) return; if (c.material.type === 'ShaderMaterial') { c.visible = true; return; } c.material.transparent = false; c.material.opacity = 1; c.material.depthWrite = true; c.material.needsUpdate = true; });
+  }
   S.area = key; PATH = D.path; PATHS = D.paths; ARENA = D.arena; S.obstacles = D.obstacles;
   S.bossStarted = false; S.bossLock = false;
   const st = D.path[0];
@@ -4383,12 +4387,13 @@ function addPoles(R, path, top, side) {
 }
 
 /* ---------- 町マップを歩く（出撃するとまず町に出て、📍まで歩く） ---------- */
-const TOWN_SZ = 150, TPX = TOWN_SZ / 1000;
+// 町の縮尺：地図1px = TPX。TSC は建物の高さなどにかける倍率（ネコとの比率をリアルに近づける）
+const TSC = 2.2, TOWN_SZ = 150 * TSC, TPX = TOWN_SZ / 1000;
 const TOWN_START = { 1: [0.4, 0.42], 2: [0.12, 0.42], 3: [0.36, 0.46], 4: [0.5, 0.55] };
 const TOWN_RAISED = { houses: 2.2, shops: 2.6, market: 2.0, warehouse: 3.2, dump: 1.2, palace: 4.2, forest: 2.6, rock: 2.4 };
 const TOWN_SIDE = { houses: '#c9a878', shops: '#d9b88a', market: '#c9a070', warehouse: '#7a7f8a', dump: '#6a5a40', palace: '#4a2a5a', forest: '#2f6a38', rock: '#241a30' };
-ENV.town = { bg: 0x1d1838, fog: [55, 110], sky: 0xc8d0ff, gnd: 0x4a3a58, hi: 0.7 };
-ENV.townU = { bg: 0x0e0a14, fog: [40, 90], sky: 0xc8b0e8, gnd: 0x1a1424, hi: 0.7, lamp: true };
+ENV.town = { bg: 0x1d1838, fog: [110, 230], sky: 0xc8d0ff, gnd: 0x4a3a58, hi: 0.7 };
+ENV.townU = { bg: 0x0e0a14, fog: [70, 160], sky: 0xc8b0e8, gnd: 0x1a1424, hi: 0.7, lamp: true };
 function segPx(px, py, ax, ay, bx, by) {
   const vx = bx - ax, vy = by - ay, t = THREE.MathUtils.clamp(((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy || 1), 0, 1);
   return Math.hypot(px - ax - vx * t, py - ay - vy * t);
@@ -4434,7 +4439,7 @@ function buildTown(key) {
   // 目印の看板
   for (const [x, y, label] of M.marks) {
     const [wx, wz] = toWorld(x * 1000, y * 1000);
-    const sg = labelSprite(label, '', '#ffb547'); sg.scale.multiplyScalar(0.75); sg.position.set(wx, 4.6, wz); R.add(sg);
+    const sg = labelSprite(label, '', '#ffb547'); sg.scale.multiplyScalar(0.75); sg.position.set(wx, 4.6 * TSC, wz); R.add(sg);
     (D.markSprites = D.markSprites || {})[label] = sg;
   }
   const ground = new THREE.Mesh(new THREE.PlaneGeometry(TOWN_SZ, TOWN_SZ), toon(0xffffff, { map: tex }));
@@ -4444,6 +4449,7 @@ function buildTown(key) {
   const tall = { warehouse: 3.2, palace: 4.2 };
   for (const b of M.blocks) {
     if (!TOWN_RAISED[b.kind]) continue;
+    if (M.id === 2) { let hit = false; for (let u = 0; u <= 4 && !hit; u++) for (let v = 0; v <= 4; v++) if (segPx(b.x + b.w * u / 4, b.y + b.h * v / 4, 180, 230, 980, 1000) < 22) { hit = true; break; } if (hit) { b.noSlab = true; continue; } }
     const h = tall[b.kind] || 0.35;
     const e = b.kind === 'forest' || b.kind === 'rock' ? 8 : 0;
     const w = (b.w + e * 2) * TPX, d = (b.h + e * 2) * TPX;
@@ -4457,7 +4463,8 @@ function buildTown(key) {
   // ---- 家・アパート・お店（敷地ごと。玄関は近い道のほうを向く）----
   const rnd = seeded(M.seed + 5), col = new THREE.Color(), mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const under = M.pal === 'under';
-  const lots = M.rec.houses.map((hs) => {
+  const onDiag = (px, py, m) => M.id === 2 && segPx(px, py, 180, 230, 980, 1000) < 20 + m;
+  const lots = M.rec.houses.filter((hs) => !onDiag(hs.x + hs.s / 2, hs.y + hs.s / 2, hs.s * 0.75)).map((hs) => {
     const cxp = hs.x + hs.s / 2, cyp = hs.y + hs.s / 2;
     const b = M.blocks.find((bk) => cxp > bk.x && cxp < bk.x + bk.w && cyp > bk.y && cyp < bk.y + bk.h);
     let yaw = 0;
@@ -4465,7 +4472,7 @@ function buildTown(key) {
     const r = rnd();
     const type = hs.shop ? 'shop' : under ? (r < 0.5 ? 'h1' : 'h2') : r < 0.12 ? 'apt' : r < 0.32 ? 'h1' : 'h2';
     const [x, z] = toWorld(cxp, cyp);
-    return { x, z, s: hs.s * TPX, yaw, type, c: hs.c, r2: rnd(), r3: rnd() };
+    return { x, z, s: hs.s * TPX, yaw, type, c: hs.c, r2: rnd(), r3: rnd(), base: b && b.noSlab ? 0.1 : 0.45 };
   });
   const TEX = {
     h2: houseTex(2, false), h1: houseTex(1, false), apt: houseTex(3, true), shop: shopTex()
@@ -4484,24 +4491,24 @@ function buildTown(key) {
     const awn = type === 'shop' ? inst(box(1, 1, 1), toon(0xffffff, {}), n) : null;
     list.forEach((L, i) => {
       const w = L.s * (type === 'apt' ? 0.92 : 0.72), d = L.s * (type === 'apt' ? 0.8 : 0.66);
-      const h = type === 'apt' ? 4.2 + L.r2 * 1.6 : type === 'h2' ? 2.6 + L.r2 * 0.4 : type === 'h1' ? 1.4 : 1.6 + L.r2 * 0.6;
+      const h = (type === 'apt' ? 4.2 + L.r2 * 1.6 : type === 'h2' ? 2.6 + L.r2 * 0.4 : type === 'h1' ? 1.4 : 1.6 + L.r2 * 0.6) * TSC;
       const back = type === 'shop' ? 0 : L.s * 0.08; // 道から少し下がって建てる
       q.setFromAxisAngle(up, L.yaw);
       const fx = Math.sin(L.yaw), fz = Math.cos(L.yaw), bx = L.x - fx * back, bz = L.z - fz * back;
-      mtx.compose(ps3.set(bx, 0.45 + h / 2, bz), q, sc.set(w, h, d)); walls.setMatrixAt(i, mtx);
+      mtx.compose(ps3.set(bx, L.base + h / 2, bz), q, sc.set(w, h, d)); walls.setMatrixAt(i, mtx);
       walls.setColorAt(i, col.set(type === 'shop' ? '#efe8dc' : WALLC[Math.floor(L.r3 * WALLC.length)]));
       if (type === 'apt' || type === 'shop') {
-        mtx.compose(ps3.set(bx, 0.45 + h + 0.08, bz), q, sc.set(w + 0.12, 0.16, d + 0.12)); roofs.setMatrixAt(i, mtx);
+        mtx.compose(ps3.set(bx, L.base + h + 0.08, bz), q, sc.set(w + 0.12, 0.16, d + 0.12)); roofs.setMatrixAt(i, mtx);
         roofs.setColorAt(i, col.set(type === 'shop' ? '#6a6460' : '#8a8680'));
       } else {
         // 切妻屋根：棟は横（幅方向）。軒を少し出す
-        mtx.compose(ps3.set(bx, 0.45 + h, bz), q, sc.set(d + 0.5, 0.9 + L.r2 * 0.4, w + 0.35));
+        mtx.compose(ps3.set(bx, L.base + h, bz), q, sc.set(d + 0.8, (0.9 + L.r2 * 0.4) * TSC, w + 0.6));
         const qq = q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(up, Math.PI / 2));
-        mtx.compose(ps3.set(bx, 0.45 + h, bz), qq, sc.set(d + 0.5, 0.9 + L.r2 * 0.4, w + 0.35)); roofs.setMatrixAt(i, mtx);
+        mtx.compose(ps3.set(bx, L.base + h, bz), qq, sc.set(d + 0.8, (0.9 + L.r2 * 0.4) * TSC, w + 0.6)); roofs.setMatrixAt(i, mtx);
         roofs.setColorAt(i, col.set(ROOFC[Math.floor(L.r2 * ROOFC.length)]));
       }
       if (awn) {
-        mtx.compose(ps3.set(bx + fx * (d / 2 + 0.35), 0.45 + h * 0.62, bz + fz * (d / 2 + 0.35)), q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.35)), sc.set(w * 0.95, 0.08, 0.8));
+        mtx.compose(ps3.set(bx + fx * (d / 2 + 0.35 * TSC), L.base + h * 0.62, bz + fz * (d / 2 + 0.35 * TSC)), q.clone().multiply(new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(1, 0, 0), 0.35)), sc.set(w * 0.95, 0.1, 0.8 * TSC));
         awn.setMatrixAt(i, mtx); awn.setColorAt(i, col.set(L.c));
       }
     });
@@ -4514,7 +4521,7 @@ function buildTown(key) {
     const fx = Math.sin(L.yaw), fz = Math.cos(L.yaw), rx = Math.cos(L.yaw), rz = -Math.sin(L.yaw);
     const fd = L.s * 0.44, len = L.s * 0.34;
     for (const sgn of [-1, 1]) {
-      mtx.compose(ps3.set(L.x + fx * fd + rx * sgn * L.s * 0.29, 0.45 + 0.35, L.z + fz * fd + rz * sgn * L.s * 0.29), q, sc.set(len, 0.7, 0.14));
+      mtx.compose(ps3.set(L.x + fx * fd + rx * sgn * L.s * 0.29, L.base + 0.275 * TSC, L.z + fz * fd + rz * sgn * L.s * 0.29), q, sc.set(len, 0.55 * TSC, 0.2));
       fence.setMatrixAt(i * 2 + (sgn > 0 ? 1 : 0), mtx);
       fence.setColorAt(i * 2 + (sgn > 0 ? 1 : 0), col.set(under ? '#4a4252' : '#c8c4bc'));
     }
@@ -4537,15 +4544,15 @@ function buildTown(key) {
     const wire = [];
     PL.forEach((p, i) => {
       const [x, z] = toWorld(p[0], p[1]);
-      mtx.compose(ps3.set(x, 0.1 + 3.4, z), q.identity(), sc.set(1, 6.8, 1)); pm.setMatrixAt(i, mtx);
+      mtx.compose(ps3.set(x, 0.1 + 3.4 * TSC, z), q.identity(), sc.set(TSC * 0.8, 6.8 * TSC, TSC * 0.8)); pm.setMatrixAt(i, mtx);
       q.setFromAxisAngle(up, p[2] === 'h' ? 0 : Math.PI / 2);
-      mtx.compose(ps3.set(x, 6.3, z), q, sc.set(1.2, 0.08, 0.08)); arm.setMatrixAt(i, mtx);
-      const off = p[2] === 'h' ? [0, -0.9] : [-0.9, 0];
-      mtx.compose(ps3.set(x + off[0], 4.1, z + off[1]), q.identity(), sc.set(1, 1, 1)); lamp.setMatrixAt(i, mtx);
+      mtx.compose(ps3.set(x, 6.3 * TSC, z), q, sc.set(1.2 * TSC, 0.1 * TSC, 0.1 * TSC)); arm.setMatrixAt(i, mtx);
+      const off = p[2] === 'h' ? [0, -0.9 * TSC] : [-0.9 * TSC, 0];
+      mtx.compose(ps3.set(x + off[0], 4.1 * TSC, z + off[1]), q.identity(), sc.set(TSC, TSC, TSC)); lamp.setMatrixAt(i, mtx);
       const n = PL[i + 1];
       if (n && n[2] === p[2] && Math.hypot(n[0] - p[0], n[1] - p[1]) < 120) {
         const [x2, z2] = toWorld(n[0], n[1]);
-        for (const o of [-0.5, 0, 0.5]) { const a = p[2] === 'h' ? [o, 0] : [0, o]; wire.push(x + a[0], 6.3, z + a[1], x2 + a[0], 6.3, z2 + a[1]); }
+        for (const o of [-0.5, 0, 0.5]) { const a = p[2] === 'h' ? [o * TSC, 0] : [0, o * TSC]; wire.push(x + a[0], 6.3 * TSC, z + a[1], x2 + a[0], 6.3 * TSC, z2 + a[1]); }
       }
     });
     if (wire.length) { const wg = new THREE.BufferGeometry(); wg.setAttribute('position', new THREE.Float32BufferAttribute(wire, 3)); R.add(new THREE.LineSegments(wg, new THREE.LineBasicMaterial({ color: '#1d1a20' }))); }
@@ -4553,20 +4560,20 @@ function buildTown(key) {
     const vm = [];
     for (const b of M.blocks) if ((b.kind === 'houses' || b.kind === 'shops') && rnd() < 0.35) vm.push([b.x + 4, b.y + b.h - 4, Math.PI]);
     const vmM = inst(box(1, 1, 1), toon(0xffffff, { map: vendTex(), emissive: new THREE.Color('#2a2a3a') }), vm.length);
-    vm.forEach((v, i) => { const [x, z] = toWorld(v[0], v[1]); q.setFromAxisAngle(up, 0); mtx.compose(ps3.set(x, 0.45 + 0.9, z + 0.3), q, sc.set(0.9, 1.8, 0.7)); vmM.setMatrixAt(i, mtx); vmM.setColorAt(i, col.set(['#e8e8f0', '#d9553b', '#3f7fd0'][i % 3])); });
+    vm.forEach((v, i) => { const [x, z] = toWorld(v[0], v[1]); q.setFromAxisAngle(up, 0); mtx.compose(ps3.set(x, 0.45 + 0.9 * 1.5, z + 0.6), q, sc.set(0.9 * 1.5, 1.8 * 1.5, 0.7 * 1.5)); vmM.setMatrixAt(i, mtx); vmM.setColorAt(i, col.set(['#e8e8f0', '#d9553b', '#3f7fd0'][i % 3])); });
   }
   const TR = M.rec.trees;
   const crowns = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), toon(0xffffff, {}), TR.length);
   const trunks = new THREE.InstancedMesh(cyl(0.12, 0.16, 1, 6), toon('#5a3f2a'), TR.length);
   TR.forEach((t, i) => {
-    const [x, z] = toWorld(t.x, t.y), r = t.r * TPX * 0.9, base = 0.12;
-    mtx.compose(ps3.set(x, base + 0.5, z), q.identity(), sc.set(1, 1, 1)); trunks.setMatrixAt(i, mtx);
-    mtx.compose(ps3.set(x, base + 0.9 + r * 0.8, z), q.identity(), sc.set(r, r * 0.9, r)); crowns.setMatrixAt(i, mtx);
+    const [x, z] = toWorld(t.x, t.y), r = Math.min(t.r * TPX * 0.9, t.dark ? 2.0 : 2.6), base = 0.12;
+    mtx.compose(ps3.set(x, base + 0.5 * TSC, z), q.identity(), sc.set(TSC, TSC, TSC)); trunks.setMatrixAt(i, mtx);
+    mtx.compose(ps3.set(x, base + 0.9 * TSC + r * 0.8, z), q.identity(), sc.set(r, r * 0.9, r)); crowns.setMatrixAt(i, mtx);
     crowns.setColorAt(i, col.set(t.dark ? '#3a2e4a' : t.c).offsetHSL(0, 0, (rnd() - 0.5) * 0.08));
   });
   crowns.castShadow = true; R.add(crowns); R.add(trunks);
   // 目的地の📍（話ごとに場所を変える）
-  const goal = new THREE.Group(); R.add(goal);
+  const goal = new THREE.Group(); goal.scale.setScalar(1.8); R.add(goal);
   const pinM = basic('#ff3b6b');
   part(goal, new THREE.ConeGeometry(0.7, 1.8, 20), pinM, 0, 2.2, 0, { rx: Math.PI, ol: 0.04 });
   part(goal, new THREE.SphereGeometry(0.95, 20, 14), pinM, 0, 3.4, 0, { ol: 0.04 });
@@ -4579,7 +4586,7 @@ function buildTown(key) {
   const arrow = new THREE.Group(); R.add(arrow);
   const sh = new THREE.Shape(); sh.moveTo(0, 0.9); sh.lineTo(0.55, 0); sh.lineTo(0.2, 0); sh.lineTo(0.2, -0.5); sh.lineTo(-0.2, -0.5); sh.lineTo(-0.2, 0); sh.lineTo(-0.55, 0); sh.closePath();
   const am = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0.9, depthWrite: false }));
-  am.rotation.x = -Math.PI / 2; am.position.z = 1.6; arrow.add(am);
+  am.rotation.x = -Math.PI / 2; am.position.z = 2.4; am.scale.setScalar(1.6); arrow.add(am);
   D.arrow = arrow;
   return D;
 }
@@ -4606,8 +4613,8 @@ function updateTown(D) {
   const g = D.goal; if (!g) return;
   const dx = g.x - ps.x, dz = g.z - ps.z, d = Math.hypot(dx, dz);
   D.arrow.position.set(ps.x, 0.16, ps.z); D.arrow.rotation.y = Math.atan2(dx, dz);
-  D.arrow.visible = d > 4;
-  if (d < 2.2 && !S.over && !S.loading) goNext();
+  D.arrow.visible = d > 6;
+  if (d < 3.6 && !S.over && !S.loading) goNext();
 }
 function drawTownMini(D) {
   const W = mm.width, M = D.M;
@@ -4737,7 +4744,10 @@ function fadeOccluders(D) {
     const lineY = 0.8 + (cy - 0.8) * Math.max(0, t - 1.6) / L;
     const block = t > 0.5 && t < L + 1 && perp < 3.4 && o.h > lineY;
     const target = block ? 0.28 : 1;
-    if (o.op == null) o.op = 1;
+    if (o.op == null) { // 半透明にする素材はその建物だけのものにする（共有している素材まで透けないように）
+      o.op = 1;
+      o.m.traverse((c) => { if (c.isMesh && c.material.type !== 'ShaderMaterial') c.material = c.material.clone(); });
+    }
     if (Math.abs(o.op - target) < 0.01) continue;
     o.op += (target - o.op) * 0.25;
     if (o.op > 0.98) o.op = 1;
@@ -5056,7 +5066,7 @@ function step() {
     camera.position.lerp(camPos, Math.min(1, dt * 6));
   } else {
     const portrait = window.innerWidth < window.innerHeight;
-    const R = ((portrait ? 17.4 : 14.5) + ps.run * 1.6) * (stage && AREA_DEF[S.area].town ? 1.45 : 1);
+    const R = ((portrait ? 17.4 : 14.5) + ps.run * 1.6) * (stage && AREA_DEF[S.area].town ? 1.75 : 1);
     const ce = Math.cos(cam.elev);
     camPos.set(ps.x + Math.sin(cam.yaw) * R * ce, R * Math.sin(cam.elev), ps.z + Math.cos(cam.yaw) * R * ce);
     camLook.set(ps.x, 0.8, ps.z);
