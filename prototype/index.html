@@ -2024,8 +2024,8 @@ function drawTownMap(M, plain) {
   const ASP = plain && M.pal !== 'under' ? '#4e4d55' : P.road;
   g.fillStyle = ASP; g.fillRect(0, 0, W, W);
   // 町のブロック（道の間）
-  const lines = (s) => { const a = [0]; let v = 0; while (v < W) { v += 95 + s() * 75; a.push(Math.min(W, v)); } return a; };
-  const xs = lines(rnd), ys = lines(rnd), R = 13;
+  const lines = (s) => { const a = [0]; let v = 0; while (v < W) { v += 110 + s() * 75; a.push(Math.min(W, v)); } return a; };
+  const xs = lines(rnd), ys = lines(rnd), R = 21; // 区画の間の半分。車道 = 2R - 歩道16px
   const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
   for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
     const x0 = xs[i] + R, y0 = ys[j] + R, w = xs[i + 1] - xs[i] - R * 2, h = ys[j + 1] - ys[j] - R * 2;
@@ -2043,15 +2043,15 @@ function drawTownMap(M, plain) {
   // 道路標示：センターラインの点線・横断歩道・止まれの線
   if (plain && M.pal !== 'under') {
     g.fillStyle = 'rgba(255,255,255,.85)';
-    for (let i = 1; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) for (let y = ys[j] + 24; y < ys[j + 1] - 24; y += 14) g.fillRect(xs[i] - 1, y, 2, 7);
-    for (let j = 1; j < ys.length - 1; j++) for (let i = 0; i < xs.length - 1; i++) for (let x = xs[i] + 24; x < xs[i + 1] - 24; x += 14) g.fillRect(x, ys[j] - 1, 7, 2);
+    for (let i = 1; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) for (let y = ys[j] + 30; y < ys[j + 1] - 30; y += 14) g.fillRect(xs[i] - 1, y, 2, 7);
+    for (let j = 1; j < ys.length - 1; j++) for (let i = 0; i < xs.length - 1; i++) for (let x = xs[i] + 30; x < xs[i + 1] - 30; x += 14) g.fillRect(x, ys[j] - 1, 7, 2);
     for (let i = 1; i < xs.length - 1; i++) for (let j = 1; j < ys.length - 1; j++) {
       const X = xs[i], Y = ys[j];
-      for (let k = -10; k <= 8; k += 4.5) { g.fillRect(X + k, Y - 22, 2.6, 8); g.fillRect(X + k, Y + 14, 2.6, 8); g.fillRect(X - 22, Y + k, 8, 2.6); g.fillRect(X + 14, Y + k, 8, 2.6); }
+      for (let k = -10; k <= 8; k += 4.5) { g.fillRect(X + k, Y - 24, 2.6, 8); g.fillRect(X + k, Y + 16, 2.6, 8); g.fillRect(X - 24, Y + k, 8, 2.6); g.fillRect(X + 16, Y + k, 8, 2.6); }
     }
   }
   // 大通り（ななめ）
-  if (M.id === 2) { g.strokeStyle = ASP; g.lineWidth = 40; g.beginPath(); g.moveTo(180, 230); g.lineTo(980, 1000); g.stroke(); }
+  if (M.id === 2) { g.strokeStyle = ASP; g.lineWidth = 56; g.beginPath(); g.moveTo(180, 230); g.lineTo(980, 1000); g.stroke(); }
   // 海（道ごとおおう）
   if (M.sea) { const [a, b, c, d] = M.sea; g.fillStyle = P.waterDark; g.fillRect(a * W - 8, b * W, (c - a) * W + 8, (d - b) * W); g.fillStyle = P.water; g.fillRect(a * W, b * W, (c - a) * W, (d - b) * W);
     g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 3; for (let k = 0; k < 60; k++) { const cx = (a + rnd() * (c - a)) * W, cy = (b + rnd() * (d - b)) * W; g.beginPath(); g.arc(cx, cy, 12, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } }
@@ -4401,7 +4401,7 @@ function segPx(px, py, ax, ay, bx, by) {
 function townWalkPx(M, px, py, rp) {
   const W = 1000;
   if (px < rp || py < rp || px > W - rp || py > W - rp) return false;
-  if (M.id === 2 && segPx(px, py, 180, 230, 980, 1000) < 20 - rp) return true;
+  if (M.id === 2 && segPx(px, py, 180, 230, 980, 1000) < 28 - rp) return true;
   for (const [x, y, l] of M.piers || []) if (px > x * W - 20 && px < (x + l) * W && Math.abs(py - y * W) < 12 - rp) return true;
   if (M.sea && px > M.sea[0] * W - 8 - rp) return false;
   const onBridge = (M.bridges || []).some(([x, y]) => Math.abs(px - x * W) < 60 && Math.abs(py - y * W) < 14 - rp);
@@ -4449,7 +4449,7 @@ function buildTown(key) {
   const tall = { warehouse: 3.2, palace: 4.2 };
   for (const b of M.blocks) {
     if (!TOWN_RAISED[b.kind]) continue;
-    if (M.id === 2) { let hit = false; for (let u = 0; u <= 4 && !hit; u++) for (let v = 0; v <= 4; v++) if (segPx(b.x + b.w * u / 4, b.y + b.h * v / 4, 180, 230, 980, 1000) < 22) { hit = true; break; } if (hit) { b.noSlab = true; continue; } }
+    if (M.id === 2) { let hit = false; for (let u = 0; u <= 4 && !hit; u++) for (let v = 0; v <= 4; v++) if (segPx(b.x + b.w * u / 4, b.y + b.h * v / 4, 180, 230, 980, 1000) < 30) { hit = true; break; } if (hit) { b.noSlab = true; continue; } }
     const h = tall[b.kind] || 0.35;
     const e = b.kind === 'forest' || b.kind === 'rock' ? 8 : 0;
     const w = (b.w + e * 2) * TPX, d = (b.h + e * 2) * TPX;
@@ -4463,7 +4463,7 @@ function buildTown(key) {
   // ---- 家・アパート・お店（敷地ごと。玄関は近い道のほうを向く）----
   const rnd = seeded(M.seed + 5), col = new THREE.Color(), mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps3 = new THREE.Vector3(), up = new THREE.Vector3(0, 1, 0);
   const under = M.pal === 'under';
-  const onDiag = (px, py, m) => M.id === 2 && segPx(px, py, 180, 230, 980, 1000) < 20 + m;
+  const onDiag = (px, py, m) => M.id === 2 && segPx(px, py, 180, 230, 980, 1000) < 28 + m;
   const lots = M.rec.houses.filter((hs) => !onDiag(hs.x + hs.s / 2, hs.y + hs.s / 2, hs.s * 0.75)).map((hs) => {
     const cxp = hs.x + hs.s / 2, cyp = hs.y + hs.s / 2;
     const b = M.blocks.find((bk) => cxp > bk.x && cxp < bk.x + bk.w && cyp > bk.y && cyp < bk.y + bk.h);
