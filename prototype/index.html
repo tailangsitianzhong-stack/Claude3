@@ -400,7 +400,7 @@ const state = Object.assign({ lv: 1, nibosi: 60, items: { kari: 0, mata: 0, tsum
 })());
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
 const stats = (lv) => ({ hp: 120 + (lv - 1) * 14, atk: 18 + (lv - 1) * 3, def: 10 + (lv - 1) * 2, spd: 14 + Math.floor((lv - 1) * 1.5) });
-const trainCost = (lv) => 20 + (lv - 1) * 10;
+const trainCost = (lv) => (20 + (lv - 1) * 10) * 2;
 
 /* ================= レンダラ ================= */
 const stageEl = $('#stage');
@@ -1746,12 +1746,29 @@ const brickTex = canvasTex(256, 256, (g, w, h) => {
     for (let c = 0; c < 5; c++) g.fillRect(((c * 64) + (r % 2) * 32) % w, r * 32, 3, 32);
   }
 }, [2, 2]);
-const stoneTex = canvasTex(256, 256, (g, w, h) => {
+// ワールド座標で模様を貼るための版（repeat 1）
+const stoneTexW = canvasTex(256, 256, (g, w, h) => {
   g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
   g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 4;
-  for (let r = 0; r < 4; r++) for (let c = 0; c < 4; c++) g.strokeRect(c * 64 + (r % 2) * 20, r * 64, 64, 64);
-  for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(0,0,0,${Math.random() * 0.1})`; g.fillRect(Math.random() * w, Math.random() * h, 3, 3); }
-}, [3, 3]);
+  for (let r = 0; r < 4; r++) for (let c = -1; c < 4; c++) g.strokeRect(c * 64 + (r % 2) * 32, r * 64, 64, 64);
+  let sd = 3; const rr = () => (sd = (sd * 9301 + 49297) % 233280) / 233280;
+  for (let i = 0; i < 300; i++) { g.fillStyle = `rgba(0,0,0,${rr() * 0.1})`; g.fillRect(rr() * w, rr() * h, 3, 3); }
+}, [1, 1]);
+const tileTexW = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  g.strokeStyle = 'rgba(0,0,0,.22)'; g.lineWidth = 4;
+  for (let i = 0; i <= 4; i++) { g.beginPath(); g.moveTo(i * 64, 0); g.lineTo(i * 64, h); g.stroke(); g.beginPath(); g.moveTo(0, i * 64); g.lineTo(w, i * 64); g.stroke(); }
+}, [1, 1]);
+// メッシュのUVをワールドのXZ座標から作り直す（重なった部品同士で模様がぴったり一致する）
+function worldUV(mesh, size) {
+  mesh.updateMatrixWorld(true);
+  const pos = mesh.geometry.attributes.position, uv = mesh.geometry.attributes.uv, v = new THREE.Vector3();
+  for (let i = 0; i < pos.count; i++) {
+    v.fromBufferAttribute(pos, i).applyMatrix4(mesh.matrixWorld);
+    uv.setXY(i, v.x / size, -v.z / size);
+  }
+  uv.needsUpdate = true;
+}
 const rippleTex = canvasTex(256, 256, (g, w, h) => {
   g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
   g.strokeStyle = 'rgba(255,255,255,.0)';
@@ -1787,34 +1804,33 @@ function buildStageMap() {
   const water = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), toon('#2f5d4a', { map: rippleTex, emissive: new THREE.Color('#0c2a1e') }));
   water.rotation.x = -Math.PI / 2; water.position.set(2, -0.35, -78); R.add(water);
   S.animated.push((dt) => { rippleTex.offset.x += dt * 0.02; rippleTex.offset.y += dt * 0.05; });
-  // 道
+  // 道：重なる部品はすべて「同じ高さ・同じ素材・ワールド座標のUV」にして、重なっても模様がずれないようにする
+  const walkTop = (x, z, len, w, top, thick, mat, yaw) => {
+    const m = new THREE.Mesh(len ? box(w, thick, len) : cyl(w / 2, w / 2, thick, 40), mat);
+    m.position.set(x, top - thick / 2, z); if (yaw) m.rotation.y = yaw;
+    m.receiveShadow = true; R.add(m); worldUV(m, 4);
+    return m;
+  };
+  const alleyM = toon('#4c4664', { map: tileTexW });
+  const sewerM = toon('#6f7884', { map: stoneTexW });
+  const edgeM = toon('#4a515c', { map: stoneTexW });
+  const ALLEY_TOP = 0.11, SEWER_TOP = 0.1, EDGE_TOP = 0.06;
   PATH.forEach((a, i) => {
     const sewer = a.z <= SEWER_Z;
-    const mat = sewer ? toon('#6f7884', { map: stoneTex }) : toon('#4c4664', { map: tileTex });
-    const disc = new THREE.Mesh(cyl(a.w / 2, a.w / 2, sewer ? 0.7 : 0.16, 28), mat);
-    disc.position.set(a.x, sewer ? -0.25 : 0.03, a.z); disc.receiveShadow = true; R.add(disc);
+    if (sewer) { walkTop(a.x, a.z, 0, a.w, SEWER_TOP, 0.7, sewerM); walkTop(a.x, a.z, 0, a.w + 0.4, EDGE_TOP, 0.7, edgeM); }
+    else walkTop(a.x, a.z, 0, a.w, ALLEY_TOP, 0.16, alleyM);
     if (i === PATH.length - 1) return;
     const b = PATH[i + 1];
-    const sw = b.z <= SEWER_Z || sewer;
-    const len = Math.hypot(b.x - a.x, b.z - a.z), w = Math.min(a.w, b.w);
-    const seg = new THREE.Mesh(box(w, sw ? 0.7 : 0.16, len), sw ? toon('#6f7884', { map: stoneTex }) : mat);
-    seg.position.set((a.x + b.x) / 2, sw ? -0.25 : 0.03, (a.z + b.z) / 2);
-    seg.rotation.y = Math.atan2(b.x - a.x, b.z - a.z);
-    seg.receiveShadow = true; R.add(seg);
-    if (sw) {
-      // 水路の縁石
-      for (const s of [-1, 1]) {
-        const curb = new THREE.Mesh(box(0.2, 0.12, len), toon('#8b94a0'));
-        curb.position.copy(seg.position); curb.position.y = 0.12; curb.rotation.y = seg.rotation.y;
-        curb.translateX(s * (w / 2 - 0.1)); R.add(curb);
-      }
-    }
+    const len = Math.hypot(b.x - a.x, b.z - a.z), w = Math.min(a.w, b.w), yaw = Math.atan2(b.x - a.x, b.z - a.z);
+    const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
+    if (b.z <= SEWER_Z) { walkTop(mx, mz, len, w, SEWER_TOP, 0.7, sewerM, yaw); walkTop(mx, mz, len, w + 0.4, EDGE_TOP, 0.7, edgeM, yaw); }
+    else walkTop(mx, mz, len, w, ALLEY_TOP, 0.16, alleyM, yaw);
   });
-  // 闘技場（大ドブネズミのねぐら）
-  const arena = new THREE.Mesh(cyl(ARENA.r, ARENA.r + 0.2, 0.7, 64), toon('#646d78', { map: stoneTex }));
-  arena.position.set(ARENA.x, -0.25, ARENA.z); arena.receiveShadow = true; R.add(arena);
+  // 闘技場（大ドブネズミのねぐら）：道と同じ素材・同じ高さなので、つなぎ目が出ない
+  walkTop(ARENA.x, ARENA.z, 0, ARENA.r * 2, SEWER_TOP, 0.7, sewerM);
+  walkTop(ARENA.x, ARENA.z, 0, ARENA.r * 2 + 0.4, EDGE_TOP, 0.7, edgeM);
   const ring = new THREE.Mesh(new THREE.RingGeometry(ARENA.r - 0.5, ARENA.r - 0.25, 64), basic('#8a3a3a'));
-  ring.rotation.x = -Math.PI / 2; ring.position.set(ARENA.x, 0.11, ARENA.z); R.add(ring);
+  ring.rotation.x = -Math.PI / 2; ring.position.set(ARENA.x, SEWER_TOP + 0.015, ARENA.z); R.add(ring);
   for (let k = 0; k < 14; k++) {
     const a = k / 14 * Math.PI * 2;
     const x = ARENA.x + Math.cos(a) * (ARENA.r + 1.2), z = ARENA.z + Math.sin(a) * (ARENA.r + 1.2);
@@ -1826,12 +1842,19 @@ function buildStageMap() {
   for (const [x, z, c] of junk) part(R, box(1.6, 1.2 + Math.random(), 1.4), c, x, 0.7, z, { ry: Math.random(), receive: true });
   const sign = labelSprite('大ドブネズミのねぐら', '', '#ff6a4d'); sign.scale.multiplyScalar(0.8); sign.position.set(0, 4.2, -105); R.add(sign);
   // ゲートの鉄格子（ボス戦で閉まる）
-  const pe = PATH[PATH.length - 2], ex = pe.x - ARENA.x, ez = pe.z - ARENA.z, el = Math.hypot(ex, ez);
-  const gx = ARENA.x + ex / el * (ARENA.r - 0.1), gz = ARENA.z + ez / el * (ARENA.r - 0.1);
-  const gate = new THREE.Group(); gate.position.set(gx, -3, gz); gate.rotation.y = Math.atan2(ex, ez); R.add(gate);
-  for (let k = -3; k <= 3; k++) part(gate, cyl(0.07, 0.07, 2.6, 8), '#3a3348', k * 0.75, 1.3, 0, { ol: 0.015 });
-  part(gate, box(5.2, 0.15, 0.15), '#3a3348', 0, 2.5, 0, { ol: 0.015 });
-  part(gate, box(5.2, 0.15, 0.15), '#3a3348', 0, 0.6, 0, { ol: 0.015 });
+  // 道が広場の縁に入る位置に、縁に沿って置く
+  const pEnd = PATH[PATH.length - 1], pPrev = PATH[PATH.length - 2];
+  const ux0 = pEnd.x - ARENA.x, uz0 = pEnd.z - ARENA.z, ul = Math.hypot(ux0, uz0), ux = ux0 / ul, uz = uz0 / ul;
+  const sl = Math.hypot(pEnd.x - pPrev.x, pEnd.z - pPrev.z);
+  const cosA = Math.abs(((pEnd.x - pPrev.x) * ux + (pEnd.z - pPrev.z) * uz) / sl);
+  const gw = pEnd.w / Math.max(0.5, cosA) + 0.6;
+  const gate = new THREE.Group();
+  gate.position.set(ARENA.x + ux * (ARENA.r + 0.25), -3, ARENA.z + uz * (ARENA.r + 0.25));
+  gate.rotation.y = Math.atan2(ux, uz); R.add(gate);
+  const nb = Math.round(gw / 0.7);
+  for (let k = 0; k <= nb; k++) part(gate, cyl(0.07, 0.07, 2.6, 8), '#3a3348', -gw / 2 + k * gw / nb, 1.3, 0, { ol: 0.015 });
+  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 2.5, 0, { ol: 0.015 });
+  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 0.6, 0, { ol: 0.015 });
   S.gate = gate;
   S.animated.push((dt) => { const ty = S.bossLock ? 0 : -3; gate.position.y += (ty - gate.position.y) * Math.min(1, dt * 6); });
 
@@ -1844,7 +1867,7 @@ function buildStageMap() {
     for (let t = 0; t <= len; t += 3.4) for (const s of [-1, 1]) {
       const off = a.w / 2 + 2.6;
       const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
-      if (pathDist(x, z) < 1.9) continue;
+      if (pathDist(x, z) < 1.9 || z < SEWER_Z + 2.2) continue;
       const h = 4 + rnd() * 6;
       const m = new THREE.Mesh(box(3.2, h, 3.2), toon(0xffffff, { map: windowTex(Math.floor(rnd() * 1000)) }));
       m.position.set(x, h / 2, z); m.rotation.y = Math.atan2(dx, dz); m.castShadow = true; m.receiveShadow = true;
@@ -1881,7 +1904,7 @@ function buildStageMap() {
     for (let t = 1.5; t <= len; t += 2.6) for (const s of [-1, 1]) {
       const off = a.w / 2 + 2.2 + rnd() * 0.8;
       const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
-      if (pathDist(x, z) < 1.6 || Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r + 2) continue;
+      if (pathDist(x, z) < 1.6 || z > SEWER_Z - 2 || Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r + 2) continue;
       const h = 1.3 + rnd() * 0.9;
       part(R, box(2.4, h, 2.4), toon('#55505e', { map: brickTex }), x, h / 2 - 0.35, z, { ry: Math.atan2(dx, dz), receive: true, ol: 0.03 });
       if (rnd() < 0.3) {
@@ -2070,7 +2093,7 @@ function teleRect(x, z, yaw, len, w) {
 function clearTeles() { for (const t of S.teles) t.remove(); S.teles.length = 0; }
 function splat(x, z, r) {
   const m = new THREE.Mesh(new THREE.CircleGeometry(r, 32), new THREE.MeshBasicMaterial({ color: '#6fbf5a', transparent: true, opacity: 0.7, depthWrite: false }));
-  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.14, z); S.ents.add(m);
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.155, z); S.ents.add(m);
   S.splats.push({ m, t: 0 });
 }
 
