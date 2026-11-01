@@ -618,7 +618,7 @@ const state = Object.assign({ lv: 1, nibosi: 60, items: { kari: 0, mata: 0, tsum
 function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify(state)); } catch (e) {} }
 // 能力値はネコごと（statsOf）。出撃中は使用中のネコの値（curStats）を使う
 const curStats = () => statsOf(curCat(), lvOf(curCat()));
-const trainCost = (lv) => (20 + (lv - 1) * 10) * 2;
+const trainCost = (lv) => (20 + (lv - 1) * 10) * 4;
 
 /* ================= レンダラ ================= */
 const stageEl = $('#stage');
@@ -1005,6 +1005,17 @@ function buildCat(opt) {
     C.tails.push(segs);
   }
 
+  // 服や小物（敵ネコ用）
+  if (P.coat) {
+    part(hips, ellip(0.33, 0.37, 0.29), toon(P.coat), 0, 0.22, -0.01, { ol: 0.014 });
+    part(hips, new THREE.ConeGeometry(0.36, 0.32, 20, 1, true), toon(P.coat, { side: THREE.DoubleSide }), 0, -0.04, -0.01, { ol: 0 });
+    for (const s of [-1, 1]) part(hips, box(0.1, 0.18, 0.03), toon('#d8d8e0'), s * 0.09, 0.48, 0.25, { rz: s * 0.5, ol: 0.006 });
+  }
+  if (P.vest) part(hips, ellip(0.318, 0.26, 0.278), toon(P.vest), 0, 0.3, 0, { ol: 0.012 });
+  if (P.bag) { part(hips, ellip(0.24, 0.22, 0.17), toon(P.bag), 0, 0.36, -0.3, { ol: 0.012 }); part(hips, ellip(0.07, 0.05, 0.05), toon(P.bag), 0, 0.56, -0.2, { ol: 0.008 }); }
+  if (P.mask) part(head, new THREE.TorusGeometry(0.385, 0.045, 8, 32), toon(P.mask), 0, 0.03, 0.0, { rx: Math.PI / 2, ol: 0.006 });
+  if (P.hat) { part(head, cyl(0.3, 0.46, 0.1, 24), toon(P.hat), 0, 0.27, -0.02, { ol: 0.012 }); part(head, ellip(0.27, 0.16, 0.27), toon(P.hat), 0, 0.33, -0.02, { ol: 0.012 }); }
+  if (P.glasses) for (const s of [-1, 1]) { const g = new THREE.Group(); g.add(new THREE.Mesh(new THREE.TorusGeometry(0.1, 0.014, 6, 20), basic(P.glasses))); onHead(head, g, s * 0.15, 0.03, -0.035); }
   C.root.traverse((o) => { if (o.isMesh && o.material && o.material.type === 'ShaderMaterial') o.castShadow = false; });
   C.t = Math.random() * 10;
   C.nextBlink = 1 + Math.random() * 2;
@@ -1907,7 +1918,7 @@ const BOOK = [
 ];
 function renderBook() {
   const e = BOOK[SCR.book], open = e.open();
-  pvShow($('#pv'), open ? e.model : (e.shadow ? 'shadowRat' : e.model));
+  pvShow($('#pv'), open ? e.model : (e.shadow === 'cat' ? 'shadowCat' : e.shadow ? 'shadowRat' : e.model));
   $('#scrLB').innerHTML = navHTML(open ? e.name : '？？？', `${SCR.book + 1} / ${BOOK.length}`);
   $('#scrR').innerHTML = open ? `
     <div class="rhead"><span class="bname">${esc(e.name)}</span><span class="chip">${esc(e.cat)}</span></div>
@@ -3024,6 +3035,7 @@ function spawnArea(D) {
     if (bi % 2 === 1) dropKari(e.x - dx * 1.8, e.z - dz * 1.8);
     for (let k = 0; k < b.guard; k++) makeRat(e.x - dx * (2.5 + k), e.z - dz * (2.5 + k) + (k ? 0.8 : -0.8), pickType(EP().mix));
   });
+  for (const [dist, id] of D.catSpawns || []) { const p = pointAt(D.path, dist); makeCatEnemy(p.x, p.z, id); }
   const end = D.tunnelFrom ? pathLength(D.path.slice(0, D.tunnelFrom + 1)) - 4 : L - 4;
   let side = 1;
   for (let d = 8; d < end; d += 9) {
@@ -3142,11 +3154,13 @@ function separateEnemies() {
   }
 }
 function hitEnemy(e, dmg, crit, dirx, dirz, kb) {
+  if (e.inv > 0) { popNum(e.x, 1.6, e.z, 'MISS', 'hit'); return; }
   e.hp -= dmg; e.flash = 1;
   popNum(e.x, e.boss ? 3.2 : 1.3, e.z, crit ? dmg + '!' : String(dmg), crit ? 'crit' : 'hit');
   if (!e.boss) {
-    e.kbx = dirx * (kb || 7); e.kbz = dirz * (kb || 7);
-    if (e.state !== 'dead') { e.state = 'hurt'; e.t = 0.28; }
+    const cat = e.kind === 'cat', kf = cat ? (e.c.heavy ? 0.2 : 0.5) : 1;
+    e.kbx = dirx * (kb || 7) * kf; e.kbz = dirz * (kb || 7) * kf;
+    if (e.state !== 'dead' && !(cat && (e.state === 'cast' || e.c.heavy))) { e.state = 'hurt'; e.t = cat ? 0.18 : 0.28; }
     e.bars[0].visible = e.bars[1].visible = true;
   }
   S.shake = Math.max(S.shake, crit ? 0.18 : 0.08);
@@ -3160,7 +3174,7 @@ function killRat(e) {
   S.stats.kills++;
   state.seen = state.seen || {}; state.seen[e.type || 'rat'] = true;
   for (let k = 0; k < 4; k++) spawnDust(e.x + (Math.random() - 0.5) * 0.6, e.z + (Math.random() - 0.5) * 0.6);
-  const n = Math.random() < 0.35 ? 3 : 2;
+  const n = e.kind === 'cat' ? 6 : Math.random() < 0.35 ? 3 : 2;
   for (let k = 0; k < n; k++) dropFish(e.x, e.z, 5);
 }
 
@@ -3281,6 +3295,8 @@ function bossAttack(d) {
   const adds = S.enemies.filter((e) => e.state !== 'dead').length;
   const dx = ps.x - B.x, dz = ps.z - B.z;
   if (B.hp < B.max * 0.7 && B.sumCD <= 0 && adds < 2) { B.state = 'summon'; B.t = 0.9; B.sumCD = 16; return; }
+  // 専用技（ボスごとに2〜3個）。半分を切ると使う回数が増える
+  if (B.cfg.specials && (B.spCD || 0) <= 0 && Math.random() < (rage ? 0.5 : 0.35)) { const sp = B.cfg.specials[Math.floor(Math.random() * B.cfg.specials.length)]; B.spCD = 4; startSpecial(B, sp); return; }
   const r = Math.random();
   let pick;
   if (d > 6.5) pick = r < 0.6 ? 'charge' : 'sludge';
@@ -3324,7 +3340,7 @@ function updateBoss(dt) {
   const B = S.boss, m = B.m;
   B.flash = Math.max(0, B.flash - dt * 6);
   m.furM.emissive.setScalar(B.flash * 0.6);
-  B.sumCD -= dt;
+  B.sumCD -= dt; B.spCD = (B.spCD || 0) - dt;
   const dx = ps.x - B.x, dz = ps.z - B.z, d = Math.hypot(dx, dz) || 0.001;
   const rage = B.hp < B.max * 0.5;
   let move = 0, wind = 0, lunge = false, rear = 0;
@@ -3413,6 +3429,10 @@ function updateBoss(dt) {
         B.state = 'idle'; B.t = 1.0;
       }
       break;
+    case 'special':
+      updateSpecial(B, dt); wind = B.slide ? 0 : 0.6; lunge = !!B.slide; move = B.slide ? 1 : 0;
+      if (B.state === 'special' && !B.slide) faceTo(B, Math.atan2(dx, dz), dt * 0.6);
+      break;
     case 'dead':
       B.t += dt;
       m.root.rotation.z = Math.min(Math.PI / 2, B.t * 3);
@@ -3424,7 +3444,7 @@ function updateBoss(dt) {
     // ネコと重ならない
     const min = B.r + 0.45;
     if (d < min) { const k = min - d; tryMove(ps, dx / d * k, dz / d * k); }
-    m.root.position.set(B.x, 0.1, B.z);
+    m.root.position.set(B.x, 0.1 + (B.hover || 0) * 5, B.z);
     m.root.rotation.y = B.yaw + B.spinA;
   }
   animateRat(m, dt, { move, wind, lunge, rear });
@@ -3656,6 +3676,288 @@ function updateSkillBtns() {
   }
 }
 
+/* ---------- 範囲攻撃の共通部品（ボスの専用技・敵ネコのわざ） ---------- */
+function teleRing(x, z, r0, r1) {
+  const g = new THREE.Group(); g.position.set(x, 0.13, z); S.ents.add(g);
+  const base = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 64), teleMat()); base.rotation.x = -Math.PI / 2; g.add(base);
+  const fill = new THREE.Mesh(new THREE.RingGeometry(r0, r1, 64), teleMat()); fill.rotation.x = -Math.PI / 2; fill.position.y = 0.005; g.add(fill);
+  for (const r of [r0, r1]) { const e = new THREE.Mesh(new THREE.RingGeometry(Math.max(0.01, r - 0.08), r + 0.02, 64), teleMat()); e.material.opacity = 0.85; e.rotation.x = -Math.PI / 2; e.position.y = 0.01; g.add(e); }
+  const T = { g, set(p) { fill.material.opacity = 0.05 + 0.4 * p; }, remove() { S.ents.remove(g); } };
+  T.set(0); S.teles.push(T);
+  return T;
+}
+function makeTele(a) {
+  if (a.shape === 'circle') return teleCircle(a.x, a.z, a.r);
+  if (a.shape === 'rect') return teleRect(a.x, a.z, a.yaw, a.len, a.w);
+  return teleRing(a.x, a.z, a.r0, a.r1);
+}
+function inArea(a, x, z) {
+  const dx = x - a.x, dz = z - a.z;
+  if (a.shape === 'circle') return Math.hypot(dx, dz) < a.r + 0.25;
+  if (a.shape === 'ring') { const d = Math.hypot(dx, dz); return d > a.r0 - 0.25 && d < a.r1 + 0.25; }
+  const along = dx * Math.sin(a.yaw) + dz * Math.cos(a.yaw), side = dx * Math.cos(a.yaw) - dz * Math.sin(a.yaw);
+  return along > -0.3 && along < a.len + 0.3 && Math.abs(side) < a.w / 2 + 0.25;
+}
+function dropTele(T) { T.remove(); const i = S.teles.indexOf(T); if (i >= 0) S.teles.splice(i, 1); }
+function clampArena(x, z, pad) {
+  const dx = x - ARENA.x, dz = z - ARENA.z, d = Math.hypot(dx, dz), m = ARENA.r - pad;
+  return d > m ? [ARENA.x + dx / d * m, ARENA.z + dz / d * m] : [x, z];
+}
+
+/* ---------- ボスの専用技 ---------- */
+// 各技は「波」の並び。波ごとに予告（赤い範囲）→ 時間がたつと判定。
+const SPECIAL_WAVES = {
+  fan: (B) => { const a = Math.atan2(ps.x - B.x, ps.z - B.z);
+    return [() => ({ delay: 0.9, dmg: 26, kb: 7, areas: [-0.6, 0, 0.6].map((o) => ({ shape: 'rect', x: B.x, z: B.z, yaw: a + o, len: 9, w: 2.2 })) })]; },
+  ripple: (B) => [[1.6, 4], [4, 6.5], [6.5, 9.2]].map(([r0, r1], i) => () => ({ delay: i ? 0.45 : 0.85, dmg: 22, kb: 8, areas: [{ shape: 'ring', x: B.x, z: B.z, r0, r1 }], fx: true })),
+  rain: (B) => [() => {
+    const areas = [{ shape: 'circle', x: ps.x, z: ps.z, r: 1.5 }];
+    for (let k = 0; k < 8; k++) { const a = Math.random() * 6.28, r = Math.random() * (ARENA.r - 1.5); areas.push({ shape: 'circle', x: ARENA.x + Math.cos(a) * r, z: ARENA.z + Math.sin(a) * r, r: 1.4 }); }
+    return { delay: 1.15, dmg: 20, kb: 5, areas, splat: true };
+  }],
+  leap: (B) => [() => { const [x, z] = clampArena(ps.x, ps.z, B.r + 0.4);
+    return { delay: 1.0, dmg: 34, kb: 10, areas: [{ shape: 'circle', x, z, r: 3.0 }], leap: true, after: () => { B.x = x; B.z = z; B.hover = 0; for (let k = 0; k < 8; k++) spawnDust(x + (Math.random() - 0.5) * 3, z + (Math.random() - 0.5) * 3); }, fx: true }; }],
+  triple: (B) => [0, 1, 2].map(() => () => {
+    const a = Math.atan2(ps.x - B.x, ps.z - B.z), len = 8;
+    const [ex, ez] = clampArena(B.x + Math.sin(a) * len, B.z + Math.cos(a) * len, B.r + 0.3);
+    const L = Math.hypot(ex - B.x, ez - B.z);
+    B.yaw = a;
+    return { delay: 0.6, dmg: 24, kb: 8, areas: [{ shape: 'rect', x: B.x, z: B.z, yaw: a, len: L + B.r, w: B.r * 2 + 0.2 }], after: () => { B.slide = { x0: B.x, z0: B.z, x1: ex, z1: ez, t: 0 }; } };
+  }),
+  cross: (B) => { const o = Math.random() * Math.PI / 4, n = B.hp < B.max * 0.5 ? 8 : 4;
+    return [() => ({ delay: 1.0, dmg: 26, kb: 7, areas: Array.from({ length: n }, (_, k) => ({ shape: 'rect', x: B.x, z: B.z, yaw: o + k * Math.PI * 2 / n, len: 11, w: 2.0 })) })]; },
+  donut: (B) => [() => ({ delay: 1.4, dmg: 30, kb: 6, areas: [{ shape: 'ring', x: B.x, z: B.z, r0: 3.2, r1: ARENA.r + 3 }], fx: true })],
+  army: (B) => [() => ({ delay: 1.0, dmg: 0, areas: [], after: () => {
+    for (let k = 0; k < 4; k++) { const a = k / 4 * 6.28 + B.yaw, [x, z] = clampArena(B.x + Math.sin(a) * 3, B.z + Math.cos(a) * 3, 1); const e = makeRat(x, z, B.summon); e.state = 'chase'; e.aggro = 99; spawnDust(x, z); }
+  } })]
+};
+const BOSS_SPECIALS = {
+  1: [['fan', 'ひっかき三連'], ['rain', 'ドブ水の雨']],
+  2: [['leap', 'のしかかり'], ['ripple', '地鳴り']],
+  3: [['triple', 'すばしっこ三連突進'], ['rain', 'ガラクタばらまき']],
+  4: [['cross', '長老の十字ひげ'], ['ripple', 'ほっほっ波'], ['triple', 'しらかばダッシュ']],
+  5: [['leap', 'ヘビーボディプレス'], ['fan', 'フォークリフト払い'], ['donut', '荷くずれ']],
+  6: [['triple', '影分身突き'], ['cross', '手裏剣十字'], ['rain', 'まきびし']],
+  7: [['ripple', '鉄球ショック'], ['cross', 'レール砲'], ['leap', '鉄の落下']],
+  8: [['rain', 'ガラクタ砲撃'], ['army', '全軍突撃'], ['leap', '将軍の一撃']],
+  9: [['donut', '大臣の結界'], ['cross', '計略十字'], ['rain', 'しかけ罠']],
+  10: [['ripple', '満月の咆哮'], ['leap', '王の鉄槌'], ['triple', '大王行進']]
+};
+EPISODES.forEach((ep) => { ep.boss.specials = BOSS_SPECIALS[ep.n].map(([type, name]) => ({ type, name })); });
+function startSpecial(B, sp) {
+  B.state = 'special'; B.sp = { waves: SPECIAL_WAVES[sp.type](B), i: -1 };
+  popNum(B.x, 3.8, B.z, sp.name, 'skill');
+  banner(sp.name, B.cfg.name + 'の専用技', '#ff6a4d', 'SPECIAL');
+  nextWave(B);
+}
+function nextWave(B) {
+  const sp = B.sp; sp.i++;
+  if (sp.i >= sp.waves.length) { B.state = 'idle'; B.t = 0.9 * B.spd; B.sp = null; return; }
+  const w = sp.waves[sp.i]();
+  w.T = w.areas.map(makeTele);
+  w.dur = w.delay * B.spd; w.t = w.dur;
+  sp.w = w;
+}
+function updateSpecial(B, dt) {
+  const sp = B.sp, w = sp.w;
+  if (B.slide) {
+    const s = B.slide; s.t += dt / 0.22;
+    const k = Math.min(1, s.t); entMoveTo(B, s.x0 + (s.x1 - s.x0) * k, s.z0 + (s.z1 - s.z0) * k);
+    if (Math.random() < 0.6) spawnDust(B.x + (Math.random() - 0.5), B.z + (Math.random() - 0.5));
+    if (k >= 1) B.slide = null; else return;
+  }
+  w.t -= dt;
+  for (const T of w.T) T.set(1 - Math.max(0, w.t) / w.dur);
+  if (w.leap) B.hover = Math.sin(Math.min(1, 1 - w.t / w.dur) * Math.PI * 0.5);
+  if (w.t > 0) return;
+  for (const T of w.T) dropTele(T);
+  if (w.dmg && w.areas.some((a) => inArea(a, ps.x, ps.z))) damagePlayer(w.dmg * B.atk, B.x, B.z, w.kb);
+  if (w.fx) for (const a of w.areas) ringFx(a.x, a.z, a.r || a.r1 || 3, '#ff9a4d', 0.4);
+  if (w.splat) for (const a of w.areas) splat(a.x, a.z, a.r);
+  if (w.dmg) S.shake = Math.max(S.shake, 0.18);
+  if (w.after) w.after();
+  nextWave(B);
+}
+function entMoveTo(B, x, z) { B.x = x; B.z = z; }
+
+/* ---------- 敵ネコ（のちに仲間になる） ---------- */
+const ECATS = {
+  dorobou: { name: 'ドロボウネコ', role: 'トリックスター', look: { base: '#7d7d86', stripe: '#45454e', cream: '#e8e4ec', eye: '#ffd36b', mask: '#1a1226', bag: '#3f8a52', scarfOn: false, sakura: false, scar: false, belt: false },
+    hp: 3.2, atk: 1.2, spd: 4.0, base: { hp: 115, atk: 17, def: 9, spd: 17, g: [12, 3, 1.5, 2] },
+    skills: [
+      { id: 'hittakuri', name: 'ひったくり', type: 'dash', power: 80, hits: 1, util: 1, desc: '前に素早く飛びこみ、通り道の敵を攻撃。' },
+      { id: 'furoshiki', name: 'ふろしき回し', type: 'spin', power: 65, hits: 1, util: 1.5, desc: 'ふろしき包みをふり回し、周りの敵をなぎはらう。' },
+      { id: 'nukiashi', name: 'ぬき足さし足', type: 'stealth', power: 0, hits: 0, util: 4, desc: '姿を消して、しばらく攻撃を受けなくなる。' },
+      { id: 'oodorobou', name: '大どろぼう', type: 'aoe', power: 150, hits: 1, util: 1.5, desc: '敵の足元に飛びこみ、まわりをまとめて攻撃。' }],
+    book: BOOKB('商店街をねぐらにするネコのどろぼう。ネズミのどろぼう団とはナワバリ争いをしている。', 'ずる賢いが義理がたい。盗むのは悪い金持ちの店からだけ、と本人は言っている。', '黒いアイマスクと緑のふろしき包み。すばやい飛びこみが得意。') },
+  nige: { name: 'ニゲネコ', role: 'スピード', look: { base: '#c9a06a', stripe: '#8a6a3a', cream: '#fff1dc', eye: '#9be37a', scarf: '#ff8fc8', sakura: false, scar: false, belt: false, fang: false },
+    hp: 2.2, atk: 0.9, spd: 5.0, flee: true, base: { hp: 100, atk: 15, def: 8, spd: 20, g: [10, 2.5, 1.5, 2.5] },
+    skills: [
+      { id: 'koishi', name: '小石投げ', type: 'projectile', power: 70, hits: 1, util: 0.5, desc: '小石をまっすぐ投げて、最初に当たった敵を攻撃。' },
+      { id: 'nigeashi', name: 'にげ足', type: 'blink', power: 0, hits: 0, util: 4, desc: '一瞬で遠くまで走りぬける。移動中は無敵。' },
+      { id: 'kakuran', name: 'かく乱ステップ', type: 'flurry', power: 20, hits: 5, util: 0, desc: 'ちょこまか動きながら、正面を何度もひっかく。' },
+      { id: 'otori', name: 'おとり作戦', type: 'aoe', power: 120, hits: 1, util: 2, desc: '敵を引きつけておいて、足元にしかけた罠を作動させる。' }],
+    book: BOOKB('商店街を走りまわる逃げ足自慢のネコ。ドロボウネコの相棒で、見張りと逃げ道の確保が役目。', 'こわがりで、すぐ逃げる。でも友だちを置いて逃げたことは一度もない。', 'ピンクのスカーフと長い足。遠くから小石を投げてくる。') },
+  ryou: { name: 'リョウネコ', role: 'パワー', look: { base: '#3a3a40', stripes: false, cream: '#f2ead8', eye: '#79c7e8', hat: '#e8c45a', vest: '#ff7a3d', scarfOn: false, sakura: false, scar: true, belt: false },
+    hp: 4.0, atk: 1.3, spd: 3.2, base: { hp: 135, atk: 19, def: 11, spd: 12, g: [15, 3, 2.5, 1] },
+    skills: [
+      { id: 'amiuchi', name: '網打ち', type: 'aoe', power: 80, hits: 1, util: 2, desc: '網を投げて、まわりの敵をまとめてつかまえる。' },
+      { id: 'mori', name: 'モリ突き', type: 'projectile', power: 95, hits: 1, util: 0.5, desc: 'モリをまっすぐ突き出し、遠くの敵をつらぬく。' },
+      { id: 'oonami', name: '大波', type: 'wave', power: 140, hits: 1, util: 1.5, desc: '大きな波を起こして、前方の敵を押し流す。' },
+      { id: 'tairyou', name: '大漁ぶん回し', type: 'spin', power: 85, hits: 1, util: 1.5, desc: '網をぶん回して、周りの敵をふき飛ばす。' }],
+    book: BOOKB('港で漁をして暮らすネコ。ネズミたちに倉庫の魚を取られて、怒って乗りこんできた。', '海の男らしく豪快。早とちりで、ネコもネズミも見さかいなく追いはらう。', '黄色い雨ガッパの帽子とオレンジのベスト。網とモリを使いこなす。') },
+  hakase: { name: 'ハカセネコ', role: 'サポート', look: { base: '#d8d0c0', stripe: '#a89880', cream: '#ffffff', eye: '#8fd3ec', coat: '#ffffff', glasses: '#2a2238', scarfOn: false, sakura: false, scar: false, belt: false, fang: false },
+    hp: 3.0, atk: 1.2, spd: 2.8, base: { hp: 105, atk: 18, def: 9, spd: 13, g: [11, 3, 1.5, 1.5] },
+    skills: [
+      { id: 'flask', name: '試験管投げ', type: 'homing', power: 28, hits: 3, util: 1, desc: '敵を追いかける試験管を3本投げる。' },
+      { id: 'bakuhatsu', name: '実験大爆発', type: 'aoe', power: 160, hits: 1, util: 1.5, desc: '少し遅れて大爆発。広い範囲に大ダメージ。' },
+      { id: 'tensou', name: '転送装置', type: 'blink', power: 0, hits: 0, util: 4, desc: '発明品で前方に瞬間移動する。移動中は無敵。' },
+      { id: 'denki', name: '電気ショック', type: 'spin', power: 70, hits: 1, util: 1.5, desc: '体から電気を放ち、周りの敵をしびれさせる。' }],
+    book: BOOKB('地下迷宮で古い機械を研究しているネコの科学者。ネズミ大臣に研究所を乗っ取られかけている。', '研究熱心で、ほかのことはうわの空。じゃまをする者はだれでも実験台にする。', '白衣と丸めがね。試験管や発明品で戦う。') },
+  joshu: { name: 'ジョシュネコ', role: 'サポート', look: { base: '#e09a4f', stripe: '#b0602a', cream: '#fff1dc', eye: '#ff8fc8', coat: '#ffffff', scarfOn: false, sakura: false, scar: false, belt: false, fang: false },
+    hp: 2.5, atk: 1.0, spd: 3.6, base: { hp: 100, atk: 16, def: 9, spd: 16, g: [10, 2.5, 1.5, 2] },
+    skills: [
+      { id: 'kusuri', name: '薬びん投げ', type: 'projectile', power: 60, hits: 1, util: 0.5, desc: 'あやしい薬びんをまっすぐ投げる。' },
+      { id: 'memo', name: 'メモ帳ラッシュ', type: 'flurry', power: 18, hits: 5, util: 0, desc: '分厚いメモ帳で正面を何度もたたく。' },
+      { id: 'kakure', name: '白衣かくれ', type: 'stealth', power: 0, hits: 0, util: 4.5, desc: '白衣にくるまって身をかくし、攻撃を受けなくなる。' },
+      { id: 'kenkyu', name: '研究の成果', type: 'wave', power: 130, hits: 1, util: 1.5, desc: '研究の成果を前方にぶちまけて大ダメージ。' }],
+    book: BOOKB('ハカセネコの助手。研究所の留守番と、ハカセの身のまわりの世話をしている。', 'まじめでしっかり者。ハカセの無茶にいつも振りまわされている。', '大きめの白衣を着た茶トラ。メモ帳と薬びんが武器。') },
+  oo: { name: 'オオネコ', role: 'タンク', look: { base: '#5a4a42', stripe: '#3a2a22', cream: '#c9b8a0', eye: '#ff6a4d', scarf: '#3a3348', sakura: false, scar: true, belt: true }, scale: 1.65,
+    hp: 6.0, atk: 1.8, spd: 2.6, heavy: true, base: { hp: 160, atk: 21, def: 13, spd: 10, g: [18, 3.5, 3, 1] },
+    skills: [
+      { id: 'nekotsuchi', name: 'ネコ鉄槌', type: 'wave', power: 170, hits: 1, util: 1.5, desc: '大きな前足をふり下ろし、前方を地面ごとたたきつぶす。' },
+      { id: 'jinarashi', name: '地ならし', type: 'spin', power: 110, hits: 1, util: 1.5, desc: '地面をふみ鳴らし、周りの敵をまとめてふき飛ばす。' },
+      { id: 'taiatari', name: '体当たり', type: 'dash', power: 120, hits: 1, util: 1, desc: '重い体で突進し、通り道の敵をはね飛ばす。' },
+      { id: 'ikaku', name: 'いかく', type: 'aoe', power: 90, hits: 1, util: 2, desc: 'ひと声ほえて、近くの敵の足元に衝撃を落とす。' }],
+    book: BOOKB('ネズミ大王の城で用心棒をしている大きなノラネコ。大王にニボシで雇われている。', '無口で、めったに動じない。強い相手と戦うのが何よりの楽しみ。', '並のネコの倍はある大きな体。動きはおそいが、一撃がとても重い。') }
+};
+for (const id in ECATS) {
+  const c = ECATS[id];
+  SKILLS[id] = c.skills; CATS[id] = { name: c.name, role: c.role }; CAT_BASE[id] = c.base;
+  state.loadout[id] = state.loadout[id] || { B: c.skills[0].id, C: c.skills[1].id };
+  PV_MODELS[id] = () => ({ kind: 'cat', o: buildCat(c.look), scale: c.scale || 1 });
+  BOOK.splice(BOOK.findIndex((b) => b.id === 'chatora'), 0, Object.assign({ id, model: id, name: c.name, cat: '仲間', shadow: 'cat', open: () => !!(state.seen || {})['cat_' + id], hint: 'まだ出会っていない。' }, c.book));
+}
+PV_MODELS.shadowCat = () => ({ kind: 'cat', o: buildCat({ silhouette: true, base: '#1d1826', glow: '#ff6a4d', sakura: false, scarfOn: false, belt: false, stripes: false }) });
+// 出てくる場所
+Object.assign(AREA_DEF.e3a, { catSpawns: [[45, 'dorobou'], [95, 'nige']] });
+Object.assign(AREA_DEF.e3b, { catSpawns: [[70, 'dorobou'], [120, 'nige']] });
+Object.assign(AREA_DEF.e5b, { catSpawns: [[50, 'ryou'], [115, 'ryou']] });
+Object.assign(AREA_DEF.e9a, { catSpawns: [[80, 'joshu']] });
+Object.assign(AREA_DEF.e9b, { catSpawns: [[50, 'hakase'], [105, 'joshu'], [150, 'hakase']] });
+Object.assign(AREA_DEF.e10a, { catSpawns: [[95, 'oo']] });
+Object.assign(AREA_DEF.e10b, { catSpawns: [[70, 'oo'], [140, 'oo']] });
+
+function makeCatEnemy(x, z, id) {
+  const c = ECATS[id], n = S.ep || 1, sc = c.scale || 1;
+  const m = buildCat(c.look); m.root.scale.setScalar(sc);
+  S.ents.add(m.root);
+  const bars = enemyBars(m.root, 2.05);
+  const hp = Math.round(72 * c.hp * epHpMul(n));
+  const lo = state.loadout[id] || { B: c.skills[0].id, C: c.skills[1].id };
+  const e = { kind: 'cat', type: 'cat_' + id, cid: id, c, m, x, z, yaw: Math.random() * 6.28, hp, max: hp, r: 0.55 * sc, atk: 24 * c.atk * epAtkMul(n), speed: c.spd, aggro: 9.5,
+    state: 'idle', t: 0, cd: 1.2, flash: 0, bars, sk: [skillById(id, lo.B), skillById(id, lo.C)], skcd: [2 + Math.random() * 2, 5 + Math.random() * 3], inv: 0 };
+  m.root.position.set(x, 0.1, z);
+  S.enemies.push(e);
+  return e;
+}
+function enemyBars(root, y) {
+  const bg = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#1a1226', depthTest: false }));
+  bg.scale.set(0.84, 0.12, 1); bg.position.y = y; bg.renderOrder = 5;
+  const fg = new THREE.Sprite(new THREE.SpriteMaterial({ color: '#ff6a4d', depthTest: false }));
+  fg.center.set(0, 0.5); fg.scale.set(0.78, 0.07, 1); fg.position.set(-0.39, y, 0); fg.renderOrder = 6;
+  bg.visible = fg.visible = false; root.add(bg); root.add(fg);
+  return [bg, fg];
+}
+// 敵ネコのわざ：予告の形を決める
+function catCastAreas(e, sk) {
+  const a = Math.atan2(ps.x - e.x, ps.z - e.z), big = sk.power > 120;
+  switch (sk.type) {
+    case 'dash': return { delay: 0.7, areas: [{ shape: 'rect', x: e.x, z: e.z, yaw: a, len: 7, w: 1.8 }], dash: a };
+    case 'spin': return { delay: 0.6, areas: [{ shape: 'circle', x: e.x, z: e.z, r: 2.8 }] };
+    case 'wave': return { delay: big ? 1.0 : 0.8, areas: [{ shape: 'rect', x: e.x, z: e.z, yaw: a, len: 4.6, w: 3.2 }] };
+    case 'flurry': return { delay: 0.55, areas: [{ shape: 'rect', x: e.x, z: e.z, yaw: a, len: 2.8, w: 2.4 }] };
+    case 'projectile': return { delay: 0.6, areas: [{ shape: 'rect', x: e.x, z: e.z, yaw: a, len: 10, w: 1.2 }] };
+    case 'homing': return { delay: 0.7, areas: [-0.45, 0, 0.45].map((o) => ({ shape: 'rect', x: e.x, z: e.z, yaw: a + o, len: 9, w: 1.0 })) };
+    case 'aoe': return { delay: big ? 1.1 : 0.9, areas: [{ shape: 'circle', x: ps.x, z: ps.z, r: big ? 3.0 : 2.4 }] };
+  }
+  return null;
+}
+function updateCatEnemy(e, dt) {
+  const dx = ps.x - e.x, dz = ps.z - e.z, d = Math.hypot(dx, dz) || 0.001;
+  e.flash = Math.max(0, e.flash - dt * 6);
+  if (e.state === 'dead') {
+    e.t += dt; const k = e.t / 0.4;
+    e.m.root.scale.setScalar(Math.max(0.01, (1 - k) * (e.c.scale || 1))); e.m.root.rotation.y += dt * 14;
+    if (k >= 1) { e.gone = true; S.ents.remove(e.m.root); }
+    return;
+  }
+  e.cd -= dt; e.skcd[0] -= dt; e.skcd[1] -= dt; e.inv = Math.max(0, e.inv - dt);
+  e.m.root.visible = !(e.inv > 0 && Math.floor(e.inv * 10) % 2 === 0);
+  if (e.kbx || e.kbz) {
+    entMove(e, e.kbx * dt, e.kbz * dt);
+    e.kbx *= Math.pow(0.01, dt); e.kbz *= Math.pow(0.01, dt);
+    if (Math.abs(e.kbx) + Math.abs(e.kbz) < 0.1) e.kbx = e.kbz = 0;
+  }
+  let walk = 0, run = 0, mode = 'idle', actionT = 0;
+  switch (e.state) {
+    case 'idle':
+      if (d < e.aggro && !S.over) { e.state = 'chase'; popNum(e.x, 2.3, e.z, '!', 'alert'); }
+      break;
+    case 'chase': {
+      faceTo(e, Math.atan2(dx, dz), dt * 1.5);
+      if (S.over) { e.state = 'idle'; break; }
+      // わざを使えるなら使う
+      for (let i = 0; i < 2; i++) {
+        const sk = e.sk[i];
+        if (e.skcd[i] > 0 || d > (sk.type === 'projectile' || sk.type === 'homing' || sk.type === 'aoe' ? 8 : 4.5)) continue;
+        e.skcd[i] = skillCD(sk) * 1.4;
+        if (sk.type === 'blink') { const a = Math.atan2(dx, dz) + Math.PI; const [x, z] = [ps.x + Math.sin(a) * 2.2, ps.z + Math.cos(a) * 2.2]; if (stageWalkable(x, z, e.r)) { ringFx(e.x, e.z, 1.2, '#9be37a', 0.3); e.x = x; e.z = z; } popNum(e.x, 2.3, e.z, sk.name, 'skill'); break; }
+        if (sk.type === 'stealth') { e.inv = 2.2; popNum(e.x, 2.3, e.z, sk.name, 'skill'); break; }
+        const cast = catCastAreas(e, sk);
+        if (!cast) break;
+        e.cast = cast; e.cast.sk = sk; e.cast.T = cast.areas.map(makeTele); e.cast.dur = cast.delay; e.t = cast.delay;
+        e.state = 'cast'; popNum(e.x, 2.3, e.z, sk.name, 'skill');
+        break;
+      }
+      if (e.state !== 'chase') break;
+      if (e.c.flee && d < 3.2) { entMove(e, -dx / d * e.speed * dt, -dz / d * e.speed * dt); faceTo(e, Math.atan2(-dx, -dz), dt * 2); run = 1; }
+      else if (d > 1.5) { entMove(e, dx / d * e.speed * dt, dz / d * e.speed * dt); walk = e.speed > 3.6 ? 0 : 1; run = e.speed > 3.6 ? 1 : 0; }
+      if (d < 1.9 && e.cd <= 0) { e.state = 'wind'; e.t = e.c.heavy ? 0.7 : 0.45; }
+      break;
+    }
+    case 'wind':
+      e.t -= dt; faceTo(e, Math.atan2(dx, dz), dt * 2); mode = 'attack'; actionT = 0.1;
+      if (e.t <= 0) {
+        e.state = 'recover'; e.t = 0.5; e.cd = 1.1 + Math.random() * 0.6; e.swing = 0;
+        const fx = Math.sin(e.yaw), fz = Math.cos(e.yaw);
+        if (d < 1.9 * (e.c.scale || 1) && (dx * fx + dz * fz) / d > 0.2) damagePlayer(e.atk, e.x, e.z, e.c.heavy ? 9 : 6);
+      }
+      break;
+    case 'cast': {
+      const c = e.cast; e.t -= dt; mode = 'attack'; actionT = 0.1;
+      for (const T of c.T) T.set(1 - Math.max(0, e.t) / c.dur);
+      if (e.t > 0) break;
+      for (const T of c.T) dropTele(T);
+      const hit = c.areas.some((a) => inArea(a, ps.x, ps.z));
+      if (hit) damagePlayer(e.atk * Math.min(170, c.sk.power * c.sk.hits) / 40 * 0.7, e.x, e.z, 7);
+      if (c.dash != null) { for (let k = 0; k < 14; k++) entMove(e, Math.sin(c.dash) * 0.5, Math.cos(c.dash) * 0.5); spawnDust(e.x, e.z); }
+      for (const a of c.areas) if (a.shape === 'circle') ringFx(a.x, a.z, a.r, '#ffd36b', 0.35);
+      S.shake = Math.max(S.shake, 0.1);
+      e.cast = null; e.state = 'recover'; e.t = 0.6; e.swing = 0;
+      break;
+    }
+    case 'recover': e.t -= dt; e.swing = (e.swing || 0) + dt; mode = e.swing < 0.55 ? 'attack' : 'idle'; actionT = e.swing; if (e.t <= 0) e.state = 'chase'; break;
+    case 'hurt': e.t -= dt; if (e.t <= 0) e.state = 'chase'; break;
+  }
+  const min = e.r + 0.4;
+  if (d < min) entMove(e, -dx / d * (min - d), -dz / d * (min - d));
+  e.m.root.position.set(e.x, 0.1, e.z);
+  e.m.root.rotation.y = e.yaw;
+  animateCat(e.m, dt, { walk, run, mode, actionT });
+  e.bars[1].scale.x = 0.78 * Math.max(0, e.hp / e.max);
+}
+
 /* ---------- ネコ側の攻撃・ダメージ ---------- */
 const ATK_SPD = 1.7;
 function playerAttack() {
@@ -3874,7 +4176,7 @@ function updateStage(dt, paused) {
     if (s.t > 2.5) { S.ents.remove(s.m); S.splats.splice(i, 1); }
   }
   if (!paused && !S.loading) {
-    for (const e of S.enemies) updateRat(e, dt);
+    for (const e of S.enemies) (e.kind === 'cat' ? updateCatEnemy : updateRat)(e, dt);
     separateEnemies();
     S.enemies = S.enemies.filter((e) => !e.gone);
     if (S.boss) updateBoss(dt);
@@ -4242,7 +4544,7 @@ function start() {
     $('#loading').classList.add('done');
     banner('ねこだまり基地', '路地裏にあるノネコたちの隠れ家', '#ffb547', 'HOME');
     requestAnimationFrame(step);
-    window.__nk = { useSkill, damagePlayer, exitStage, state, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goNext, EPISODES, isCleared, get ARENA() { return ARENA; } };
+    window.__nk = { makeCatEnemy, startSpecial, useSkill, damagePlayer, exitStage, state, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goNext, EPISODES, isCleared, get ARENA() { return ARENA; } };
   } catch (err) {
     console.error(err);
     $('#loadMsg').className = 'err';
