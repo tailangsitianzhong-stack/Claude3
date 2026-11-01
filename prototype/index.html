@@ -2014,10 +2014,13 @@ const TOWN_MAPS = [
 for (const M of TOWN_MAPS) { M.pins = {}; for (const mk of M.marks) if (mk[4] != null) M.pins[mk[4]] = [mk[0], mk[1]]; }
 const mapOfEp = (n) => TOWN_MAPS.find((m) => m.eps.includes(n));
 const mapCache = {};
-function drawTownMap(M) {
-  if (mapCache[M.id]) return mapCache[M.id];
-  const W = 1000, cv = document.createElement('canvas'); cv.width = cv.height = W;
+let townRec = null;
+function drawTownMap(M, plain) {
+  const ck = M.id + (plain ? 'p' : '');
+  if (mapCache[ck]) return mapCache[ck];
+  const W = 1000, cv = document.createElement('canvas'); cv.width = cv.height = plain ? 2048 : W;
   const g = cv.getContext('2d'), P = TOWN_PAL[M.pal], rnd = seeded(M.seed);
+  M.blocks = []; if (plain) { M.canvas3d = cv; g.scale(2.048, 2.048); townRec = M.rec = { houses: [], trees: [] }; } else { M.canvas = cv; townRec = null; }
   g.fillStyle = P.road; g.fillRect(0, 0, W, W);
   // 町のブロック（道の間）
   const lines = (s) => { const a = [0]; let v = 0; while (v < W) { v += 95 + s() * 75; a.push(Math.min(W, v)); } return a; };
@@ -2027,6 +2030,7 @@ function drawTownMap(M) {
     const x0 = xs[i] + R, y0 = ys[j] + R, w = xs[i + 1] - xs[i] - R * 2, h = ys[j + 1] - ys[j] - R * 2;
     if (w < 20 || h < 20) continue;
     const kind = M.zone((x0 + w / 2) / W, (y0 + h / 2) / W);
+    M.blocks.push({ x: x0, y: y0, w, h, kind });
     drawBlock(g, P, kind, x0, y0, w, h, rnd, rr);
   }
   // 大通り（ななめ）
@@ -2048,8 +2052,8 @@ function drawTownMap(M) {
     g.strokeStyle = '#3a2e28'; g.lineWidth = 3; g.setLineDash([4, 10]); g.lineWidth = 16; g.stroke(); g.setLineDash([]);
   }
   if (M.tunnel) { const [x, y] = M.tunnel; g.fillStyle = '#5a4a3a'; g.beginPath(); g.arc(x * W, y * W, 34, Math.PI, 0); g.fill(); g.fillStyle = '#100c14'; g.beginPath(); g.arc(x * W, y * W + 4, 22, Math.PI, 0); g.fill(); }
-  // 目印と名前
-  for (const [x, y, label, icon] of M.marks) {
+  // 目印と名前（3D の町では看板を別に立てるので描かない）
+  if (!plain) for (const [x, y, label, icon] of M.marks) {
     if (icon) drawMark(g, icon, x * W, y * W);
     g.font = '800 26px "M PLUS Rounded 1c", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
     const tw = g.measureText(label).width;
@@ -2058,11 +2062,12 @@ function drawTownMap(M) {
     g.strokeStyle = 'rgba(29,24,52,.4)'; g.lineWidth = 2; g.stroke();
     g.fillStyle = '#1d1834'; g.fillText(label, x * W, ly + 1);
   }
-  mapCache[M.id] = cv.toDataURL('image/png');
-  return mapCache[M.id];
+  townRec = null;
+  mapCache[ck] = plain ? true : cv.toDataURL('image/png');
+  return mapCache[ck];
 }
 function drawBlock(g, P, kind, x, y, w, h, rnd, rr) {
-  const tree = (cx, cy, r, c1, c2) => { g.fillStyle = c2; g.beginPath(); g.arc(cx + 2, cy + 3, r, 0, 7); g.fill(); g.fillStyle = c1; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); };
+  const tree = (cx, cy, r, c1, c2) => { if (townRec) townRec.trees.push({ x: cx, y: cy, r, c: c1, dark: kind === 'rock' }); g.fillStyle = c2; g.beginPath(); g.arc(cx + 2, cy + 3, r, 0, 7); g.fill(); g.fillStyle = c1; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); };
   if (kind === 'none') return;
   if (kind === 'forest' || kind === 'rock') {
     g.fillStyle = kind === 'rock' ? P.forest : P.forest; rr(x - 8, y - 8, w + 16, h + 16, 18); g.fill();
@@ -2085,9 +2090,11 @@ function drawBlock(g, P, kind, x, y, w, h, rnd, rr) {
     g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(xx + 3, yy + 4, s, s);
     if (kind === 'shops' || kind === 'market') {
       const c = P.roofs[Math.floor(rnd() * P.roofs.length)];
+      if (townRec) townRec.houses.push({ x: xx, y: yy, s, c, shop: true });
       for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#fff6e0' : c; g.fillRect(xx + k * s / 4, yy, s / 4, s); }
     } else {
       g.fillStyle = P.roofs[Math.floor(rnd() * P.roofs.length)]; g.fillRect(xx, yy, s, s);
+      if (townRec) townRec.houses.push({ x: xx, y: yy, s, c: g.fillStyle });
       g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(xx + s / 2, yy, s / 2, s);
     }
   }
@@ -2168,7 +2175,7 @@ function renderMissionPop() {
   const c = pop.querySelector('.mcmap'), g = c.getContext('2d');
   g.fillStyle = '#1d1834'; g.fillRect(0, 0, 240, 160);
   const ep = EPISODES[(m.ep || 1) - 1];
-  const keys2 = m.type === 'main' ? ep.areas : ['alley'];
+  const keys2 = m.type === 'main' ? ep.areas.filter((k) => !AREA_DEF[k].town) : ['alley'];
   const cols = ['#7a6fa0', '#6f9a84'];
   keys2.forEach((k, ai) => {
     const D = AREA_DEF[k], bb = pathBounds([].concat(...D.paths), D.arena);
@@ -2519,6 +2526,7 @@ function pathDistAll(paths, arena, x, z) {
   return d;
 }
 function stageWalkable(x, z, rad) {
+  const TD = AREA_DEF[S.area]; if (TD && TD.town) return townWalk(TD, x, z, rad);
   if (rad == null) rad = 0.35;
   const inArena = ARENA ? Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r - rad - 0.2 : false;
   if (S.bossLock) return inArena;
@@ -3187,7 +3195,8 @@ function goNext() {
     setTimeout(() => {
       L.hidden = true; S.loading = false;
       banner(N.name, N.sub || '', '#9be37a', 'AREA');
-      if (!S.said[next] && N.line) { S.said[next] = true; talk([{ who: 'noneko', text: N.line }]); }
+      if (!S.said[next] && next === EP().areas[1] && EP().intro) { S.said[next] = true; talk(EP().intro.map((text) => ({ who: 'noneko', text }))); }
+      else if (!S.said[next] && N.line) { S.said[next] = true; talk([{ who: 'noneko', text: N.line }]); }
     }, 1100);
   }, 80);
 }
@@ -3228,7 +3237,7 @@ function loadArea(key) {
   clearEntities();
   if (!S.built) buildStageRoot();
   const D = AREA_DEF[key];
-  if (!D.root) { if (key === 'alley') buildAlley(); else if (key === 'sewer') buildSewer(); else buildGen(key); }
+  if (!D.root) { if (D.town) buildTown(key); else if (key === 'alley') buildAlley(); else if (key === 'sewer') buildSewer(); else buildGen(key); }
   if (!ENV[key]) ENV[key] = D.gen ? THEMES[D.theme].env : ENV[key];
   for (const k in AREA_DEF) if (AREA_DEF[k].root) AREA_DEF[k].root.visible = (k === key);
   S.area = key; PATH = D.path; PATHS = D.paths; ARENA = D.arena; S.obstacles = D.obstacles;
@@ -3236,7 +3245,8 @@ function loadArea(key) {
   const st = D.path[0];
   ps.x = st.x; ps.z = st.z - (key === 'alley' ? 2 : 3); ps.yaw = Math.PI; ps.kx = ps.kz = 0; ps.mode = 'idle'; ps.actionT = 0;
   camera.position.set(ps.x, 11, ps.z + 10);
-  spawnArea(D);
+  if (D.town) { const [sx, sz] = placeTownGoal(D); PATH = D.path; PATHS = D.paths; ps.x = sx; ps.z = sz; ps.yaw = Math.atan2(D.goal.x - sx, D.goal.z - sz); camera.position.set(ps.x, 11, ps.z + 10); }
+  else spawnArea(D);
   if (ARENA) makeBoss();
   $('#bossBar').hidden = true;
   setEnv(D.gen ? key : D.env);
@@ -4265,6 +4275,163 @@ function setEnv(k) {
   renderer.setClearColor(e.bg, 1);
   if (S.lamp) S.lamp.intensity = (k === 'sewer' || e.lamp) ? 0.9 : 0;
 }
+/* ---------- 町マップを歩く（出撃するとまず町に出て、📍まで歩く） ---------- */
+const TOWN_SZ = 150, TPX = TOWN_SZ / 1000;
+const TOWN_START = { 1: [0.4, 0.42], 2: [0.12, 0.42], 3: [0.36, 0.46], 4: [0.5, 0.55] };
+const TOWN_RAISED = { houses: 2.2, shops: 2.6, market: 2.0, warehouse: 3.2, dump: 1.2, palace: 4.2, forest: 2.6, rock: 2.4 };
+const TOWN_SIDE = { houses: '#c9a878', shops: '#d9b88a', market: '#c9a070', warehouse: '#7a7f8a', dump: '#6a5a40', palace: '#4a2a5a', forest: '#2f6a38', rock: '#241a30' };
+ENV.town = { bg: 0x1d1838, fog: [55, 110], sky: 0xc8d0ff, gnd: 0x4a3a58, hi: 0.7 };
+ENV.townU = { bg: 0x0e0a14, fog: [40, 90], sky: 0xc8b0e8, gnd: 0x1a1424, hi: 0.7, lamp: true };
+function segPx(px, py, ax, ay, bx, by) {
+  const vx = bx - ax, vy = by - ay, t = THREE.MathUtils.clamp(((px - ax) * vx + (py - ay) * vy) / (vx * vx + vy * vy || 1), 0, 1);
+  return Math.hypot(px - ax - vx * t, py - ay - vy * t);
+}
+function townWalkPx(M, px, py, rp) {
+  const W = 1000;
+  if (px < rp || py < rp || px > W - rp || py > W - rp) return false;
+  if (M.id === 2 && segPx(px, py, 180, 230, 980, 1000) < 20 - rp) return true;
+  for (const [x, y, l] of M.piers || []) if (px > x * W - 20 && px < (x + l) * W && Math.abs(py - y * W) < 12 - rp) return true;
+  if (M.sea && px > M.sea[0] * W - 8 - rp) return false;
+  const onBridge = (M.bridges || []).some(([x, y]) => Math.abs(px - x * W) < 60 && Math.abs(py - y * W) < 14 - rp);
+  if (!onBridge) {
+    for (const rv of M.rivers || []) for (let i = 0; i < rv.length - 1; i++) if (segPx(px, py, rv[i][0] * W, rv[i][1] * W, rv[i + 1][0] * W, rv[i + 1][1] * W) < 46 + rp) return false;
+  }
+  for (const [x, y, r] of M.ponds || []) { const dx = (px - x * W) / (r * W + 6 + rp), dy = (py - y * W) / (r * W * 0.7 + 6 + rp); if (dx * dx + dy * dy < 1) return false; }
+  for (const b of M.blocks) {
+    if (!(b.kind in TOWN_RAISED) && b.kind !== 'water') continue;
+    const e = rp + (b.kind === 'forest' || b.kind === 'rock' ? 8 : 0);
+    if (px > b.x - e && px < b.x + b.w + e && py > b.y - e && py < b.y + b.h + e) return false;
+  }
+  return true;
+}
+const toWorld = (px, py) => [px * TPX - TOWN_SZ / 2, py * TPX - TOWN_SZ / 2];
+const toPx = (x, z) => [(x + TOWN_SZ / 2) / TPX, (z + TOWN_SZ / 2) / TPX];
+function townWalk(D, x, z, rad) { const [px, py] = toPx(x, z); return townWalkPx(D.M, px, py, (rad == null ? 0.35 : rad) / TPX); }
+function nearestWalk(M, fx, fy) {
+  const px = fx * 1000, py = fy * 1000, rp = 0.6 / TPX;
+  for (let r = 0; r < 400; r += 5) for (let a = 0; a < 24; a++) {
+    const x = px + Math.cos(a / 24 * 6.283) * r, y = py + Math.sin(a / 24 * 6.283) * r;
+    if (townWalkPx(M, x, y, rp)) return toWorld(x, y);
+    if (!r) break;
+  }
+  return toWorld(px, py);
+}
+function buildTown(key) {
+  const D = AREA_DEF[key], M = D.M;
+  drawTownMap(M); drawTownMap(M, true);
+  const R = new THREE.Group(); S.root.add(R); D.root = R; D.obstacles = []; D.occluders = [];
+  const P = TOWN_PAL[M.pal];
+  const skirt = new THREE.Mesh(new THREE.PlaneGeometry(TOWN_SZ + 120, TOWN_SZ + 120), toon(P.edge));
+  skirt.rotation.x = -Math.PI / 2; skirt.position.y = -0.02; R.add(skirt);
+  const tex = new THREE.CanvasTexture(M.canvas3d); tex.anisotropy = 8;
+  // 目印の看板
+  for (const [x, y, label] of M.marks) {
+    const [wx, wz] = toWorld(x * 1000, y * 1000);
+    const sg = labelSprite(label, '', '#ffb547'); sg.scale.multiplyScalar(0.75); sg.position.set(wx, 4.6, wz); R.add(sg);
+    (D.markSprites = D.markSprites || {})[label] = sg;
+  }
+  const ground = new THREE.Mesh(new THREE.PlaneGeometry(TOWN_SZ, TOWN_SZ), toon(0xffffff, { map: tex }));
+  ground.rotation.x = -Math.PI / 2; ground.position.y = 0.1; ground.receiveShadow = true; R.add(ground);
+  // 町のブロック：低い土台（上に地図の絵）＋家・木を立てる。倉庫・城はブロックごと立ち上げる
+  const topM = toon(0xffffff, { map: tex });
+  const tall = { warehouse: 3.2, palace: 4.2 };
+  for (const b of M.blocks) {
+    if (!TOWN_RAISED[b.kind]) continue;
+    const h = tall[b.kind] || 0.35;
+    const e = b.kind === 'forest' || b.kind === 'rock' ? 8 : 0;
+    const w = (b.w + e * 2) * TPX, d = (b.h + e * 2) * TPX;
+    const [cx, cz] = toWorld(b.x + b.w / 2, b.y + b.h / 2);
+    const geo = box(w, h, d);
+    const pos = geo.attributes.position, uv = geo.attributes.uv;
+    for (let i = 8; i < 12; i++) { const wx = cx + pos.getX(i), wz = cz + pos.getZ(i); uv.setXY(i, (wx + TOWN_SZ / 2) / TOWN_SZ, 1 - (wz + TOWN_SZ / 2) / TOWN_SZ); }
+    const side = toon(TOWN_SIDE[b.kind]);
+    part(R, geo, [side, side, topM, side, side, side], cx, 0.1 + h / 2, cz, { receive: true, ol: tall[b.kind] ? 0.03 : 0.015 });
+  }
+  const rnd = seeded(M.seed + 5), col = new THREE.Color(), mtx = new THREE.Matrix4(), q = new THREE.Quaternion(), sc = new THREE.Vector3(), ps3 = new THREE.Vector3();
+  const HS = M.rec.houses, TR = M.rec.trees;
+  const wallM = toon(0xffffff, {}), roofM = toon(0xffffff, {}); // インスタンスごとの色を使うので共有しない
+  const walls = new THREE.InstancedMesh(box(1, 1, 1), wallM, HS.length);
+  const roofs = new THREE.InstancedMesh(new THREE.ConeGeometry(0.72, 1, 4), roofM, HS.length);
+  const wallCols = M.pal === 'under' ? ['#5a4a6a', '#4a3e5a'] : ['#f2e6cc', '#e8dcc0', '#f6ecd8', '#dccfb4'];
+  const qr = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0, 1, 0), Math.PI / 4);
+  HS.forEach((hs, i) => {
+    const [x, z] = toWorld(hs.x + hs.s / 2, hs.y + hs.s / 2), w = hs.s * TPX * 0.86, h = hs.shop ? 0.9 + rnd() * 0.3 : 0.9 + rnd() * 0.7;
+    mtx.compose(ps3.set(x, 0.45 + h / 2, z), q.identity(), sc.set(w, h, w)); walls.setMatrixAt(i, mtx);
+    walls.setColorAt(i, col.set(wallCols[i % wallCols.length]));
+    const rh = hs.shop ? 0.22 : 1.0 + rnd() * 0.5;
+    mtx.compose(ps3.set(x, 0.45 + h + rh / 2, z), qr, sc.set(w * 1.05, rh, w * 1.05)); roofs.setMatrixAt(i, mtx);
+    roofs.setColorAt(i, col.set(hs.c));
+  });
+  walls.castShadow = roofs.castShadow = true; walls.receiveShadow = true;
+  R.add(walls); R.add(roofs);
+  const crowns = new THREE.InstancedMesh(new THREE.SphereGeometry(1, 10, 8), toon(0xffffff, {}), TR.length);
+  const trunks = new THREE.InstancedMesh(cyl(0.12, 0.16, 1, 6), toon('#5a3f2a'), TR.length);
+  TR.forEach((t, i) => {
+    const [x, z] = toWorld(t.x, t.y), r = t.r * TPX * 0.9, base = 0.12;
+    mtx.compose(ps3.set(x, base + 0.5, z), q.identity(), sc.set(1, 1, 1)); trunks.setMatrixAt(i, mtx);
+    mtx.compose(ps3.set(x, base + 0.9 + r * 0.8, z), q.identity(), sc.set(r, r * 0.9, r)); crowns.setMatrixAt(i, mtx);
+    crowns.setColorAt(i, col.set(t.dark ? '#3a2e4a' : t.c).offsetHSL(0, 0, (rnd() - 0.5) * 0.08));
+  });
+  crowns.castShadow = true; R.add(crowns); R.add(trunks);
+  // 目的地の📍（話ごとに場所を変える）
+  const goal = new THREE.Group(); R.add(goal);
+  const pinM = basic('#ff3b6b');
+  part(goal, new THREE.ConeGeometry(0.7, 1.8, 20), pinM, 0, 2.2, 0, { rx: Math.PI, ol: 0.04 });
+  part(goal, new THREE.SphereGeometry(0.95, 20, 14), pinM, 0, 3.4, 0, { ol: 0.04 });
+  part(goal, new THREE.SphereGeometry(0.38, 14, 10), basic('#ffffff'), 0, 3.45, 0.75, { ol: 0 });
+  const beam = new THREE.Mesh(cyl(1.6, 1.6, 0.04, 40), new THREE.MeshBasicMaterial({ color: '#ff6fb0', transparent: true, opacity: 0.5, depthWrite: false }));
+  beam.position.y = 0.14; goal.add(beam);
+  D.goalG = goal;
+  S.animated.push((dt, t) => { if (S.area !== key) return; goal.children[0].position.y = 2.2 + Math.sin(t * 3) * 0.25; goal.children[1].position.y = 3.4 + Math.sin(t * 3) * 0.25; goal.children[2].position.y = 3.45 + Math.sin(t * 3) * 0.25; goal.rotation.y = t; beam.material.opacity = 0.35 + Math.sin(t * 4) * 0.15; });
+  // 行き先を指す矢印（ネコの足もと）
+  const arrow = new THREE.Group(); R.add(arrow);
+  const sh = new THREE.Shape(); sh.moveTo(0, 0.9); sh.lineTo(0.55, 0); sh.lineTo(0.2, 0); sh.lineTo(0.2, -0.5); sh.lineTo(-0.2, -0.5); sh.lineTo(-0.2, 0); sh.lineTo(-0.55, 0); sh.closePath();
+  const am = new THREE.Mesh(new THREE.ShapeGeometry(sh), new THREE.MeshBasicMaterial({ color: '#ffb547', transparent: true, opacity: 0.9, depthWrite: false }));
+  am.rotation.x = -Math.PI / 2; am.position.z = 1.6; arrow.add(am);
+  D.arrow = arrow;
+  return D;
+}
+function placeTownGoal(D) {
+  const M = D.M, n = EP().n, pin = M.pins[n] || M.pins[M.eps[0]];
+  const [gx, gz] = nearestWalk(M, pin[0], pin[1]);
+  D.goal = { x: gx, z: gz, name: (M.marks.find((mk) => mk[4] === n) || [0, 0, '目的地'])[2] };
+  D.goalG.position.set(gx, 0, gz);
+  if (D.goalLabel) D.goalG.remove(D.goalLabel);
+  for (const k in D.markSprites) D.markSprites[k].visible = k !== D.goal.name;
+  D.goalLabel = labelSprite(D.goal.name, `第${n}話の目的地`, '#ff6fb0'); D.goalLabel.scale.multiplyScalar(0.9); D.goalLabel.position.y = 5.6; D.goalG.add(D.goalLabel);
+  const st = TOWN_START[M.id];
+  const [sx, sz] = nearestWalk(M, st[0], st[1]);
+  D.path = [PT(sx, sz, 4), PT(gx, gz, 4)]; D.paths = [D.path];
+  return [sx, sz];
+}
+for (const M of TOWN_MAPS) {
+  const key = 'town' + M.id;
+  AREA_DEF[key] = { key, town: true, M, name: M.name, sub: M.sub, env: M.id === 4 ? 'townU' : 'town', path: [PT(0, 0, 4), PT(0, -10, 4)], arena: null, branches: [], branchPaths: [], spawns: [] };
+  AREA_DEF[key].paths = [AREA_DEF[key].path];
+}
+for (const ep of EPISODES) if (!ep.areas[0].startsWith('town')) ep.areas.unshift('town' + mapOfEp(ep.n).id);
+function updateTown(D) {
+  const g = D.goal; if (!g) return;
+  const dx = g.x - ps.x, dz = g.z - ps.z, d = Math.hypot(dx, dz);
+  D.arrow.position.set(ps.x, 0.16, ps.z); D.arrow.rotation.y = Math.atan2(dx, dz);
+  D.arrow.visible = d > 4;
+  if (d < 2.2 && !S.over && !S.loading) goNext();
+}
+function drawTownMini(D) {
+  const W = mm.width, M = D.M;
+  mctx.clearRect(0, 0, W, W);
+  const sc = W / TOWN_SZ, X = (x) => (x + TOWN_SZ / 2) * sc, Z = (z) => (z + TOWN_SZ / 2) * sc;
+  mctx.save(); mctx.beginPath(); mctx.roundRect ? mctx.roundRect(0, 0, W, W, 14) : mctx.rect(0, 0, W, W); mctx.clip();
+  mctx.drawImage(M.canvas, 0, 0, W, W);
+  if (D.goal) { const px = X(D.goal.x), pz = Z(D.goal.z) - 10; mctx.fillStyle = '#ff3b6b'; mctx.strokeStyle = '#0d0a1a'; mctx.lineWidth = 3;
+    mctx.beginPath(); mctx.arc(px, pz - 8, 11, Math.PI * 0.85, Math.PI * 0.15); mctx.lineTo(px, pz + 10); mctx.closePath(); mctx.fill(); mctx.stroke();
+    mctx.fillStyle = '#fff'; mctx.beginPath(); mctx.arc(px, pz - 8, 4, 0, 7); mctx.fill(); }
+  mctx.translate(X(ps.x), Z(ps.z)); mctx.rotate(-ps.yaw + Math.PI);
+  mctx.fillStyle = '#ffb547'; mctx.strokeStyle = '#0d0a1a'; mctx.lineWidth = 3;
+  mctx.beginPath(); mctx.moveTo(0, -11); mctx.lineTo(8, 8); mctx.lineTo(-8, 8); mctx.closePath(); mctx.stroke(); mctx.fill();
+  mctx.restore();
+}
+
 function enterStage(fromMovie, ep) {
   closePanel();
   S.ep = ep || S.ep || 1;
@@ -4278,13 +4445,13 @@ function enterStage(fromMovie, ep) {
   setHint();
   const coarse = matchMedia('(pointer: coarse)').matches;
   const intro = () => talk([
-    ...EP().intro.map((text) => ({ who: 'noneko', text })),
+    { who: 'nar', text: `${AREA_DEF[S.area].name}。${AREA_DEF[S.area].goal ? '地図の📍「' + AREA_DEF[S.area].goal.name + '」を目指そう。足もとの矢印が行き先を指している。' : ''}` },
     { who: 'nar', text: coarse
       ? '右下のボタンでひっかく。スティックを端まで倒すと走る。画面をスライドすると視点を回せる。'
       : 'スペースキーかクリックでひっかく。Shiftで走る。ドラッグで視点を回せる。' }
   ]);
   // 路地裏を見わたすカット → 会話
-  const far = pointAt(PATH, 70);
+  const far = AREA_DEF[S.area].goal || pointAt(PATH, 70);
   playCine([{
     dur: 4.6, title: true,
     cam: [[far.x + 10, 30, far.z + 10], [ps.x, 10.5, ps.z + 10]],
@@ -4349,6 +4516,7 @@ function updateStage(dt, paused) {
   $('#dark').style.opacity = S.loading ? '1' : String(dark);
   if (S.lamp) S.lamp.position.set(ps.x, 2.6, ps.z + 0.5);
   fadeOccluders(D);
+  if (D.town) updateTown(D);
   if (!paused) updateFx(dt);
   for (let i = S.splats.length - 1; i >= 0; i--) {
     const s = S.splats[i]; s.t += dt;
@@ -4391,6 +4559,7 @@ function fadeOccluders(D) {
 }
 /* ---------- ミニマップ（ステージ） ---------- */
 function drawStageMap() {
+  if (AREA_DEF[S.area].town) return drawTownMini(AREA_DEF[S.area]);
   const W = mm.width;
   mctx.clearRect(0, 0, W, W);
   const bb = pathBounds([].concat(...PATHS), ARENA);
@@ -4695,7 +4864,7 @@ function step() {
     camera.position.lerp(camPos, Math.min(1, dt * 6));
   } else {
     const portrait = window.innerWidth < window.innerHeight;
-    const R = (portrait ? 17.4 : 14.5) + ps.run * 1.6;
+    const R = ((portrait ? 17.4 : 14.5) + ps.run * 1.6) * (stage && AREA_DEF[S.area].town ? 1.45 : 1);
     const ce = Math.cos(cam.elev);
     camPos.set(ps.x + Math.sin(cam.yaw) * R * ce, R * Math.sin(cam.elev), ps.z + Math.cos(cam.yaw) * R * ce);
     camLook.set(ps.x, 0.8, ps.z);
@@ -4729,7 +4898,7 @@ function start() {
     $('#loading').classList.add('done');
     banner('ねこだまり基地', '路地裏にあるノネコたちの隠れ家', '#ffb547', 'HOME');
     requestAnimationFrame(step);
-    window.__nk = { makeCatEnemy, startSpecial, useSkill, damagePlayer, exitStage, state, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goNext, EPISODES, isCleared, get ARENA() { return ARENA; } };
+    window.__nk = { stageWalkable, makeCatEnemy, startSpecial, useSkill, damagePlayer, exitStage, state, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goNext, EPISODES, isCleared, get ARENA() { return ARENA; } };
   } catch (err) {
     console.error(err);
     $('#loadMsg').className = 'err';
