@@ -297,6 +297,36 @@ body.in-stage #banner { top: calc(84px + env(safe-area-inset-top, 0px)); }
   .dbox p { font-size: 13px; line-height: 1.55; }
   .num { font-size: 18px; } .num.crit { font-size: 24px; }
 }
+/* ---------- 暗転・読み込み・ムービー ---------- */
+#dark { position: absolute; inset: 0; background: #000; opacity: 0; pointer-events: none; }
+#flash { position: absolute; inset: 0; background: #fff8e8; opacity: 0; pointer-events: none; z-index: 6; }
+#loadArea { position: absolute; inset: 0; z-index: 5; background: #000; display: grid; place-items: center; padding: 16px; }
+.lbox { width: min(360px, 100%); text-align: center; }
+.lbox small { font-size: 11px; letter-spacing: .3em; color: var(--muted); font-weight: 800; }
+.lbox strong { display: block; font-family: var(--display); font-weight: 400; font-size: 28px; color: var(--leaf); margin: 6px 0 14px; }
+.lbar { height: 8px; border-radius: 4px; background: #1d2b25; overflow: hidden; }
+.lbar i { display: block; height: 100%; width: 0; background: var(--leaf); transition: width 1.05s ease-out; }
+.lbox p { margin: 12px 0 0; font-size: 12.5px; color: var(--muted); }
+body.cine #hud, body.cine #banner, body.cine #toast { display: none; }
+#cine { position: absolute; inset: 0; z-index: 4; pointer-events: none; }
+#cine .lb { position: absolute; left: 0; right: 0; background: #000; height: 13vh; min-height: 44px; pointer-events: auto; }
+#cine .top { top: 0; display: flex; justify-content: flex-end; align-items: center; padding: env(safe-area-inset-top, 0px) max(12px, env(safe-area-inset-right, 0px)) 0 12px; }
+#cine .bottom { bottom: 0; height: 19vh; min-height: 70px; display: flex; align-items: center; justify-content: center; padding: 0 max(16px, env(safe-area-inset-right, 0px)) env(safe-area-inset-bottom, 0px) max(16px, env(safe-area-inset-left, 0px)); }
+#cineSkip { font-size: 12px; padding: 6px 12px; }
+.ccap { display: flex; align-items: center; gap: 12px; width: min(760px, 100%); }
+.ccap img { width: 56px; height: 56px; border-radius: 50%; border: 2px solid #3a3360; flex: none; background: radial-gradient(circle at 50% 40%, #4a3f7a, #241d40); }
+.ccap b { font-family: var(--display); font-weight: 400; font-size: 15px; color: var(--lantern); }
+.ccap p { margin: 2px 0 0; font-size: 15px; line-height: 1.6; color: var(--ink); }
+#titleCard { position: absolute; left: 50%; top: 42%; transform: translate(-50%, -50%) scale(.96); z-index: 5; text-align: center; pointer-events: none; opacity: 0; transition: opacity .6s, transform .6s; width: max-content; max-width: calc(100% - 32px); }
+#titleCard.show { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+#titleCard small { display: block; font-size: 13px; letter-spacing: .3em; color: var(--ink); font-weight: 800; text-shadow: 0 2px 0 var(--line); }
+#titleCard strong { display: block; font-family: var(--display); font-weight: 400; font-size: clamp(28px, 6vw, 56px); color: var(--lantern); text-shadow: 0 4px 0 var(--line), 0 0 24px rgba(0,0,0,.6); text-wrap: balance; }
+@media (orientation: landscape) and (max-height: 520px) {
+  .ccap img { width: 40px; height: 40px; }
+  .ccap p { font-size: 13px; line-height: 1.5; }
+  .ccap b { font-size: 13px; }
+}
+@media (prefers-reduced-motion: reduce) { #titleCard, .lbar i { transition: none; } }
 #loading { position: absolute; inset: 0; display: grid; place-items: center; background: var(--night); z-index: 5; transition: opacity .4s; }
 #loading.done { opacity: 0; pointer-events: none; }
 #loading p { font-family: var(--display); font-size: 20px; color: var(--lantern); }
@@ -306,6 +336,7 @@ body.in-stage #banner { top: calc(84px + env(safe-area-inset-top, 0px)); }
 
 <div id="app">
   <div id="stage" aria-label="ねこだまり基地の3Dステージ"></div>
+  <div id="dark" aria-hidden="true"></div>
   <div id="vignette"></div>
 
   <div id="hud">
@@ -337,6 +368,13 @@ body.in-stage #banner { top: calc(84px + env(safe-area-inset-top, 0px)); }
   <div id="banner" class="chunky" aria-live="polite"><small>ROOM</small><strong></strong><span></span></div>
   <div id="toast" class="chunky" aria-live="polite"></div>
   <div id="fx" aria-hidden="true"></div>
+  <section id="cine" hidden>
+    <div class="lb top"><button id="cineSkip" class="btn ghost">スキップ</button></div>
+    <div class="lb bottom"><div id="cineCap" class="ccap" hidden><img id="cineImg" alt=""><div><b id="cineName"></b><p id="cineText"></p></div></div></div>
+  </section>
+  <div id="titleCard" aria-live="polite"><small>STORY 第1話</small><strong>下水道の大ドブネズミ</strong></div>
+  <div id="flash" aria-hidden="true"></div>
+  <div id="loadArea" hidden><div class="lbox"><small>NOW LOADING</small><strong>下水道へ…</strong><div class="lbar"><i></i></div><p>真っ暗なトンネルを手さぐりで進んでいく。</p></div></div>
   <section id="dlg" hidden>
     <div class="dbox chunky"><img id="dImg" alt=""><div class="dtext"><b id="dName"></b><p id="dText"></p></div><span class="dnext">▼</span></div>
   </section>
@@ -1174,14 +1212,26 @@ function buildOutskirts() {
     m.lookAt(0, h / 2, 0);
     world.add(m);
   }
-  // 路地の小物
-  const props = [
-    [9.3, 4.5, 'can'], [-9.6, 3.8, 'crate'], [-6.5, 9.4, 'cone'], [6.0, -9.5, 'crate'], [-8.7, -6.8, 'can'], [10.4, -4.4, 'cone'], [3.6, 10.6, 'can'], [-11.5, -1.0, 'crate']
-  ];
-  for (const [x, z, t] of props) {
-    if (t === 'can') { part(world, cyl(0.45, 0.4, 1.1, 18), '#5f7a8a', x, 0.55, z); part(world, cyl(0.5, 0.5, 0.12, 18), '#4c6472', x, 1.15, z); }
-    if (t === 'crate') { part(world, box(1, 1, 1), '#a07444', x, 0.5, z, { ry: 0.4 }); part(world, box(0.8, 0.8, 0.8), '#8a6236', x + 0.3, 1.4, z + 0.1, { ry: 0.9 }); }
-    if (t === 'cone') { part(world, new THREE.ConeGeometry(0.3, 0.8, 16), '#ff7a3d', x, 0.45, z); part(world, box(0.7, 0.08, 0.7), '#ff7a3d', x, 0.04, z); }
+  // 路地の小物：広場・部屋・通路から十分はなれた外側の地面にだけ置く（床と重ならない）
+  const free = (x, z) => {
+    if (Math.hypot(x, z) < HUB_R + 1.8) return false;
+    for (const r of ROOMS) {
+      const v = r.group.worldToLocal(new THREE.Vector3(x, 0, z));
+      if (Math.abs(v.x) < HALF + 1.8 && Math.abs(v.z) < HALF + 1.8) return false;
+      if (Math.abs(v.x) < 3.2 && v.z > 3 && v.z < 11) return false;
+    }
+    return true;
+  };
+  const kinds = ['can', 'crate', 'cone', 'can', 'crate', 'cone', 'crate', 'can'];
+  let placed = 0;
+  for (let k = 0; k < 40 && placed < kinds.length; k++) {
+    const a = k * 2.399 + 0.3, r = 9 + (k % 4) * 1.3;
+    const x = Math.cos(a) * r, z = Math.sin(a) * r;
+    if (!free(x, z)) continue;
+    const t = kinds[placed++];
+    if (t === 'can') { part(world, cyl(0.45, 0.4, 1.1, 18), '#5f7a8a', x, 0.55, z); part(world, cyl(0.5, 0.5, 0.12, 18), '#4c6472', x, 1.17, z); }
+    if (t === 'crate') { part(world, box(1, 1, 1), '#a07444', x, 0.5, z, { ry: 0.4 }); part(world, box(0.8, 0.8, 0.8), '#8a6236', x + 0.05, 1.42, z + 0.05, { ry: 0.9 }); }
+    if (t === 'cone') { part(world, new THREE.ConeGeometry(0.3, 0.8, 16), '#ff7a3d', x, 0.46, z); part(world, box(0.7, 0.06, 0.7), '#ff7a3d', x, 0.03, z, { ol: 0.01 }); }
   }
 }
 
@@ -1329,6 +1379,8 @@ const joy = { x: 0, y: 0, id: null, cx: 0, cy: 0 };
 window.addEventListener('keydown', (e) => {
   if (e.target.closest && e.target.closest('input,textarea')) return;
   keys.add(e.code);
+  if (cine.active) { if (e.code === 'Escape') { if (cine.skip) cine.skip(); else endCine(); } return; }
+  if (S.loading) return;
   if (dlg.active) { if (['Space', 'Enter', 'KeyE', 'KeyJ'].includes(e.code)) { e.preventDefault(); nextLine(); } return; }
   if (mode === 'stage') {
     if (!$('#panel').hidden) { if (e.code === 'Escape' && !$('#panel').dataset.lock) closePanel(); return; }
@@ -1484,7 +1536,9 @@ $('#panel').addEventListener('click', (e) => {
   } else if (act === 'view') {
     closePanel(); openViewer();
   } else if (act === 'depart') {
-    enterStage();
+    departMovie();
+  } else if (act === 'retryArea') {
+    closePanel(); resetStage(S.area); banner(AREA_DEF[S.area].name, 'もう一度挑戦', '#ffb547', 'RETRY');
   } else if (act === 'resume') {
     closePanel();
   } else if (act === 'retry') {
@@ -1706,37 +1760,63 @@ function updateNums(dt) {
 function clearNums() { for (const n of nums) n.el.remove(); nums.length = 0; }
 
 /* ================= 第1話：下水道の大ドブネズミ ================= */
-const PATH = [
-  { x: 0, z: 6, w: 5.6 }, { x: 0, z: -14, w: 5.6 }, { x: 7, z: -22, w: 5.6 }, { x: 7, z: -33, w: 5.0 },
-  { x: 7, z: -42, w: 4.4 }, { x: -4, z: -50, w: 4.4 }, { x: -4, z: -60, w: 4.4 }, { x: 7, z: -68, w: 4.4 },
-  { x: 7, z: -77, w: 4.4 }, { x: 0, z: -86, w: 4.4 }
-];
-const SEWER_Z = -33;
-const ARENA = { x: 0, z: -96, r: 10 };
+// 路地裏と下水道は別マップ。路地裏の奥の真っ暗なトンネルに入ると読み込みが入り、下水道に切り替わる。
+const PT = (x, z, w) => ({ x, z, w });
+const AREA_DEF = {
+  alley: {
+    name: '路地裏', env: 'alley',
+    path: [PT(0, 6, 5.6), PT(0, -14, 5.6), PT(8, -24, 5.6), PT(8, -40, 5.6), PT(-2, -52, 5.6), PT(-2, -66, 5.6), PT(6, -76, 5.6),
+      PT(6, -92, 5.6), PT(0, -100, 5.6), PT(0, -108, 5.0), PT(0, -118, 5.0)],
+    tunnelFrom: 9, tunnelZ: -108, loadZ: -114,
+    arena: null,
+    spawns: [[16, 2], [32, 2], [50, 3], [68, 2], [86, 3], [102, 3]]
+  },
+  sewer: {
+    name: '下水道', env: 'sewer',
+    path: [PT(0, 4, 4.4), PT(0, -8, 4.4), PT(9, -16, 4.4), PT(9, -30, 4.4), PT(-3, -40, 4.4), PT(-3, -54, 4.4), PT(8, -64, 4.4),
+      PT(8, -80, 4.4), PT(-4, -90, 4.4), PT(-4, -106, 4.4), PT(6, -116, 4.4), PT(6, -132, 4.4), PT(-2, -142, 4.4), PT(-2, -156, 4.4), PT(0, -164, 4.4)],
+    arena: { x: 0, z: -174, r: 10 },
+    spawns: [[14, 2], [34, 3], [54, 2], [76, 3], [98, 3], [120, 2], [142, 3], [160, 3]]
+  }
+};
+let PATH = AREA_DEF.alley.path, ARENA = null;
 const S = {
   built: false, root: null, ents: null, obstacles: [], animated: [], enemies: [], drops: [], teles: [], splats: [], boss: null,
   hp: 0, maxHp: 0, inv: 0, shake: 0, over: false, defeat: false, cleared: false, bossStarted: false, bossLock: false,
-  zone: '', stats: { kills: 0, nibosi: 0 }, said: {}, gate: null, lamp: null, time: 0
+  area: 'alley', loading: false, darkT: 0, stats: { kills: 0, nibosi: 0 }, said: {}, gate: null, lamp: null, time: 0
 };
 function segDist(px, pz, a, b) {
   const vx = b.x - a.x, vz = b.z - a.z, wx = px - a.x, wz = pz - a.z;
   const t = THREE.MathUtils.clamp((wx * vx + wz * vz) / (vx * vx + vz * vz), 0, 1);
   return Math.hypot(px - (a.x + vx * t), pz - (a.z + vz * t));
 }
-function pathDist(x, z) {
+function pathDistOf(path, arena, x, z) {
   let d = Infinity;
-  for (let i = 0; i < PATH.length - 1; i++) d = Math.min(d, segDist(x, z, PATH[i], PATH[i + 1]) - Math.min(PATH[i].w, PATH[i + 1].w) / 2);
-  return Math.min(d, Math.hypot(x - ARENA.x, z - ARENA.z) - ARENA.r);
+  for (let i = 0; i < path.length - 1; i++) d = Math.min(d, segDist(x, z, path[i], path[i + 1]) - Math.min(path[i].w, path[i + 1].w) / 2);
+  if (arena) d = Math.min(d, Math.hypot(x - arena.x, z - arena.z) - arena.r);
+  return d;
 }
+function pathDist(x, z) { return pathDistOf(PATH, ARENA, x, z); }
 function stageWalkable(x, z, rad) {
   if (rad == null) rad = 0.35;
-  const inArena = Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r - rad - 0.2;
+  const inArena = ARENA ? Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r - rad - 0.2 : false;
   if (S.bossLock) return inArena;
   if (inArena) return true;
   for (let i = 0; i < PATH.length - 1; i++) {
     if (segDist(x, z, PATH[i], PATH[i + 1]) < Math.min(PATH[i].w, PATH[i + 1].w) / 2 - rad) return true;
   }
   return false;
+}
+function pathLength(path) { let L = 0; for (let i = 0; i < path.length - 1; i++) L += Math.hypot(path[i + 1].x - path[i].x, path[i + 1].z - path[i].z); return L; }
+function pointAt(path, dist) {
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1], L = Math.hypot(b.x - a.x, b.z - a.z);
+    if (dist <= L || i === path.length - 2) {
+      const t = Math.min(1, dist / L);
+      return { x: a.x + (b.x - a.x) * t, z: a.z + (b.z - a.z) * t, dx: (b.x - a.x) / L, dz: (b.z - a.z) / L, w: Math.min(a.w, b.w) };
+    }
+    dist -= L;
+  }
 }
 const brickTex = canvasTex(256, 256, (g, w, h) => {
   g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
@@ -1771,7 +1851,6 @@ function worldUV(mesh, size) {
 }
 const rippleTex = canvasTex(256, 256, (g, w, h) => {
   g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
-  g.strokeStyle = 'rgba(255,255,255,.0)';
   for (let i = 0; i < 60; i++) {
     g.strokeStyle = `rgba(0,40,20,${0.08 + Math.random() * 0.1})`; g.lineWidth = 2 + Math.random() * 3;
     const x = Math.random() * w, y = Math.random() * h, r = 8 + Math.random() * 30;
@@ -1793,81 +1872,72 @@ function textSprite(text, color, size) {
   s.scale.set(1.6, 0.8, 1);
   return s;
 }
-
-function buildStageMap() {
+function buildStageRoot() {
   const R = new THREE.Group(); scene.add(R); S.root = R;
   S.ents = new THREE.Group(); R.add(S.ents);
-  // 路地裏の地面
-  const g1 = new THREE.Mesh(box(80, 0.2, 52), toon('#37324b', { map: alleyGroundTex }));
-  g1.position.set(3, -0.1, -8); g1.receiveShadow = true; R.add(g1);
-  // 下水の水面
-  const water = new THREE.Mesh(new THREE.PlaneGeometry(90, 90), toon('#2f5d4a', { map: rippleTex, emissive: new THREE.Color('#0c2a1e') }));
-  water.rotation.x = -Math.PI / 2; water.position.set(2, -0.35, -78); R.add(water);
+  S.lamp = new THREE.PointLight(0xffc27a, 0, 10, 2); scene.add(S.lamp);
   S.animated.push((dt) => { rippleTex.offset.x += dt * 0.02; rippleTex.offset.y += dt * 0.05; });
-  // 道：重なる部品はすべて「同じ高さ・同じ素材・ワールド座標のUV」にして、重なっても模様がずれないようにする
-  const walkTop = (x, z, len, w, top, thick, mat, yaw) => {
-    const m = new THREE.Mesh(len ? box(w, thick, len) : cyl(w / 2, w / 2, thick, 40), mat);
-    m.position.set(x, top - thick / 2, z); if (yaw) m.rotation.y = yaw;
-    m.receiveShadow = true; R.add(m); worldUV(m, 4);
-    return m;
-  };
-  const alleyM = toon('#4c4664', { map: tileTexW });
-  const sewerM = toon('#6f7884', { map: stoneTexW });
-  const edgeM = toon('#4a515c', { map: stoneTexW });
-  const ALLEY_TOP = 0.11, SEWER_TOP = 0.1, EDGE_TOP = 0.06;
-  PATH.forEach((a, i) => {
-    const sewer = a.z <= SEWER_Z;
-    if (sewer) { walkTop(a.x, a.z, 0, a.w, SEWER_TOP, 0.7, sewerM); walkTop(a.x, a.z, 0, a.w + 0.4, EDGE_TOP, 0.7, edgeM); }
-    else walkTop(a.x, a.z, 0, a.w, ALLEY_TOP, 0.16, alleyM);
-    if (i === PATH.length - 1) return;
-    const b = PATH[i + 1];
-    const len = Math.hypot(b.x - a.x, b.z - a.z), w = Math.min(a.w, b.w), yaw = Math.atan2(b.x - a.x, b.z - a.z);
-    const mx = (a.x + b.x) / 2, mz = (a.z + b.z) / 2;
-    if (b.z <= SEWER_Z) { walkTop(mx, mz, len, w, SEWER_TOP, 0.7, sewerM, yaw); walkTop(mx, mz, len, w + 0.4, EDGE_TOP, 0.7, edgeM, yaw); }
-    else walkTop(mx, mz, len, w, ALLEY_TOP, 0.16, alleyM, yaw);
-  });
-  // 闘技場（大ドブネズミのねぐら）：道と同じ素材・同じ高さなので、つなぎ目が出ない
-  walkTop(ARENA.x, ARENA.z, 0, ARENA.r * 2, SEWER_TOP, 0.7, sewerM);
-  walkTop(ARENA.x, ARENA.z, 0, ARENA.r * 2 + 0.4, EDGE_TOP, 0.7, edgeM);
-  const ring = new THREE.Mesh(new THREE.RingGeometry(ARENA.r - 0.5, ARENA.r - 0.25, 64), basic('#8a3a3a'));
-  ring.rotation.x = -Math.PI / 2; ring.position.set(ARENA.x, SEWER_TOP + 0.015, ARENA.z); R.add(ring);
-  for (let k = 0; k < 14; k++) {
-    const a = k / 14 * Math.PI * 2;
-    const x = ARENA.x + Math.cos(a) * (ARENA.r + 1.2), z = ARENA.z + Math.sin(a) * (ARENA.r + 1.2);
-    if (pathDist(x, z) < 1.2) continue;
-    part(R, cyl(0.7, 0.8, 5 + (k % 3), 12), toon('#5b5360', { map: brickTex }), x, 2.3, z, { receive: true, ol: 0.03 });
-  }
-  // ガラクタの山（ボスの寝床）
-  const junk = [[-2.5, -103, '#a07444'], [2.8, -103.5, '#5f7a8a'], [0, -104.5, '#8a6236'], [-4.5, -100.5, '#6b6380'], [4.6, -100.8, '#a07444']];
-  for (const [x, z, c] of junk) part(R, box(1.6, 1.2 + Math.random(), 1.4), c, x, 0.7, z, { ry: Math.random(), receive: true });
-  const sign = labelSprite('大ドブネズミのねぐら', '', '#ff6a4d'); sign.scale.multiplyScalar(0.8); sign.position.set(0, 4.2, -105); R.add(sign);
-  // ゲートの鉄格子（ボス戦で閉まる）
-  // 道が広場の縁に入る位置に、縁に沿って置く
-  const pEnd = PATH[PATH.length - 1], pPrev = PATH[PATH.length - 2];
-  const ux0 = pEnd.x - ARENA.x, uz0 = pEnd.z - ARENA.z, ul = Math.hypot(ux0, uz0), ux = ux0 / ul, uz = uz0 / ul;
-  const sl = Math.hypot(pEnd.x - pPrev.x, pEnd.z - pPrev.z);
-  const cosA = Math.abs(((pEnd.x - pPrev.x) * ux + (pEnd.z - pPrev.z) * uz) / sl);
-  const gw = pEnd.w / Math.max(0.5, cosA) + 0.6;
-  const gate = new THREE.Group();
-  gate.position.set(ARENA.x + ux * (ARENA.r + 0.25), -3, ARENA.z + uz * (ARENA.r + 0.25));
-  gate.rotation.y = Math.atan2(ux, uz); R.add(gate);
-  const nb = Math.round(gw / 0.7);
-  for (let k = 0; k <= nb; k++) part(gate, cyl(0.07, 0.07, 2.6, 8), '#3a3348', -gw / 2 + k * gw / nb, 1.3, 0, { ol: 0.015 });
-  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 2.5, 0, { ol: 0.015 });
-  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 0.6, 0, { ol: 0.015 });
-  S.gate = gate;
-  S.animated.push((dt) => { const ty = S.bossLock ? 0 : -3; gate.position.y += (ty - gate.position.y) * Math.min(1, dt * 6); });
+  S.built = true;
+}
 
-  // 路地のビル（道に重ならない位置だけに置く）
-  let seed = 7;
-  const rnd = () => (seed = (seed * 9301 + 49297) % 233280) / 233280;
-  for (let i = 0; i < 4; i++) {
-    const a = PATH[i], b = PATH[i + 1];
+// 床：重なる部品はすべて「同じ高さ・同じ素材・ワールド座標のUV」。素材の違う床は高さを分ける
+const FLOOR = { ALLEY: 0.11, SEWER: 0.10, EDGE: 0.06, MARK: 0.125 };
+function floorPiece(R, x, z, len, w, top, thick, mat, yaw) {
+  const m = new THREE.Mesh(len ? box(w, thick, len) : cyl(w / 2, w / 2, thick, 40), mat);
+  m.position.set(x, top - thick / 2, z); if (yaw) m.rotation.y = yaw;
+  m.receiveShadow = true; R.add(m); worldUV(m, 4);
+  return m;
+}
+function buildPathFloor(R, path, opt) {
+  // opt: { mat, top, thick, edge, dark(i) }
+  const isBend = (i) => {
+    if (i === 0 || i === path.length - 1) return true;
+    const a = path[i - 1], b = path[i], c = path[i + 1];
+    return Math.abs((b.x - a.x) * (c.z - b.z) - (b.z - a.z) * (c.x - b.x)) > 0.01;
+  };
+  path.forEach((a, i) => {
+    const dark = opt.dark && opt.dark(i);
+    const prevDark = opt.dark && i > 0 && opt.dark(i - 1);
+    if (isBend(i)) {
+      const mat = (dark && prevDark) || (dark && i === 0) ? opt.darkMat : opt.mat;
+      if (!(dark !== prevDark && i > 0)) {
+        floorPiece(R, a.x, a.z, 0, a.w, opt.top, opt.thick, mat);
+        if (opt.edge) floorPiece(R, a.x, a.z, 0, a.w + 0.4, FLOOR.EDGE, opt.thick, opt.edge);
+      }
+    }
+    if (i === path.length - 1) return;
+    const b = path[i + 1];
+    const len = Math.hypot(b.x - a.x, b.z - a.z), w = Math.min(a.w, b.w), yaw = Math.atan2(b.x - a.x, b.z - a.z);
+    floorPiece(R, (a.x + b.x) / 2, (a.z + b.z) / 2, len, w, opt.top, opt.thick, dark ? opt.darkMat : opt.mat, yaw);
+    if (opt.edge) floorPiece(R, (a.x + b.x) / 2, (a.z + b.z) / 2, len, w + 0.4, FLOOR.EDGE, opt.thick, opt.edge, yaw);
+  });
+}
+function pathBounds(path, arena) {
+  let x0 = Infinity, x1 = -Infinity, z0 = Infinity, z1 = -Infinity;
+  for (const p of path) { x0 = Math.min(x0, p.x); x1 = Math.max(x1, p.x); z0 = Math.min(z0, p.z); z1 = Math.max(z1, p.z); }
+  if (arena) { x0 = Math.min(x0, arena.x - arena.r); x1 = Math.max(x1, arena.x + arena.r); z0 = Math.min(z0, arena.z - arena.r); z1 = Math.max(z1, arena.z + arena.r); }
+  return { x0, x1, z0, z1 };
+}
+function seeded(seed) { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
+
+function buildAlley() {
+  const D = AREA_DEF.alley, path = D.path;
+  const R = new THREE.Group(); S.root.add(R); D.root = R; D.obstacles = [];
+  const bb = pathBounds(path);
+  const g1 = new THREE.Mesh(box(bb.x1 - bb.x0 + 70, 0.2, bb.z1 - bb.z0 + 50), toon('#37324b', { map: alleyGroundTex }));
+  g1.position.set((bb.x0 + bb.x1) / 2, -0.1, (bb.z0 + bb.z1) / 2); g1.receiveShadow = true; R.add(g1);
+  alleyGroundTex.repeat.set(30, 40);
+  const darkM = new THREE.MeshBasicMaterial({ color: '#000000' });
+  buildPathFloor(R, path, { mat: toon('#4c4664', { map: tileTexW }), darkMat: darkM, top: FLOOR.ALLEY, thick: 0.16, dark: (i) => i >= D.tunnelFrom });
+  const rnd = seeded(7);
+  // ビル（道に重ならない位置だけ。トンネルの壁より奥には置かない）
+  for (let i = 0; i < D.tunnelFrom; i++) {
+    const a = path[i], b = path[i + 1];
     const len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
     for (let t = 0; t <= len; t += 3.4) for (const s of [-1, 1]) {
       const off = a.w / 2 + 2.6;
       const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
-      if (pathDist(x, z) < 1.9 || z < SEWER_Z + 2.2) continue;
+      if (pathDistOf(path, null, x, z) < 1.9 || z < D.tunnelZ + 3) continue;
       const h = 4 + rnd() * 6;
       const m = new THREE.Mesh(box(3.2, h, 3.2), toon(0xffffff, { map: windowTex(Math.floor(rnd() * 1000)) }));
       m.position.set(x, h / 2, z); m.rotation.y = Math.atan2(dx, dz); m.castShadow = true; m.receiveShadow = true;
@@ -1878,33 +1948,88 @@ function buildStageMap() {
   part(R, box(9, 3, 1), '#5b4a86', 0, 1.5, 9.4, { receive: true });
   part(R, box(9.2, 0.15, 1.2), '#ffb547', 0, 3.05, 9.4, { ol: 0.02 });
   const home = labelSprite('ねこだまり基地', '裏口', '#ffb547'); home.scale.multiplyScalar(0.7); home.position.set(0, 4.2, 9.4); R.add(home);
-  // 路地の小物（通路の端に置き、ぶつかる）
-  const props = [[2.1, -2, 'can'], [-2.0, -9, 'crate'], [2.0, -12.5, 'cone'], [8.6, -27, 'can'], [5.2, -30, 'crate'], [-1.9, 2.5, 'crate']];
-  for (const [x, z, t] of props) {
-    if (t === 'can') { part(R, cyl(0.42, 0.38, 1.0, 18), '#5f7a8a', x, 0.5, z); part(R, cyl(0.46, 0.46, 0.1, 18), '#4c6472', x, 1.05, z); }
-    if (t === 'crate') part(R, box(0.9, 0.9, 0.9), '#a07444', x, 0.45, z, { ry: 0.4 });
-    if (t === 'cone') part(R, new THREE.ConeGeometry(0.28, 0.75, 16), '#ff7a3d', x, 0.4, z);
-    S.obstacles.push({ x, z, r: 0.55 });
+  // 道ばたの小物：曲がり角を避け、道の端に置く（床の上に乗せ、床と同じ高さの面を作らない）
+  const kinds = ['can', 'crate', 'cone', 'crate', 'can'];
+  let k = 0;
+  for (let i = 0; i < D.tunnelFrom - 1; i++) {
+    const a = path[i], b = path[i + 1];
+    const len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
+    for (let t = 4; t < len - 4; t += 7) {
+      const s = (k % 2) ? 1 : -1, off = a.w / 2 - 0.6;
+      const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
+      const kind = kinds[k++ % kinds.length], y0 = FLOOR.ALLEY;
+      if (kind === 'can') { part(R, cyl(0.42, 0.38, 1.0, 18), '#5f7a8a', x, y0 + 0.5, z); part(R, cyl(0.46, 0.46, 0.1, 18), '#4c6472', x, y0 + 1.05, z); }
+      if (kind === 'crate') part(R, box(0.9, 0.9, 0.9), '#a07444', x, y0 + 0.45, z, { ry: 0.4 + t });
+      if (kind === 'cone') { part(R, new THREE.ConeGeometry(0.28, 0.75, 16), '#ff7a3d', x, y0 + 0.43, z); part(R, box(0.6, 0.06, 0.6), '#ff7a3d', x, y0 + 0.03, z, { ol: 0.01 }); }
+      D.obstacles.push({ x, z, r: 0.55 });
+      // 水たまり（床より少し上。小物とは離す）
+      if (k % 3 === 0) {
+        const p = new THREE.Mesh(new THREE.CircleGeometry(0.8, 24), toon('#4a5f8a', { emissive: new THREE.Color('#141c33') }));
+        p.rotation.x = -Math.PI / 2; p.scale.set(1.4, 1, 1); p.position.set(a.x + dx * (t + 3.2) - dz * s * 0.6, FLOOR.MARK, a.z + dz * (t + 3.2) + dx * s * 0.6); R.add(p);
+      }
+    }
   }
-  for (const [x, z, r] of [[-1, -5, 0.9], [1.3, -17, 0.7], [7.5, -26, 1.0]]) {
-    const p = new THREE.Mesh(new THREE.CircleGeometry(r, 24), toon('#4a5f8a', { emissive: new THREE.Color('#141c33') }));
-    p.rotation.x = -Math.PI / 2; p.scale.set(1.4, 1, 1); p.position.set(x, 0.12, z); R.add(p);
+  // 下水道の入口：レンガの壁にあいた真っ暗なトンネル
+  const tz = D.tunnelZ;
+  const brickM = toon('#6b4f42', { map: brickTex });
+  for (const s of [-1, 1]) part(R, box(16, 5.5, 1.6), brickM, s * (2.5 + 8 + 0.15), 2.75, tz - 0.8, { receive: true, ol: 0.03 });
+  part(R, box(5.6, 1.6, 1.6), brickM, 0, 4.7, tz - 0.8, { ol: 0.03 });
+  part(R, new THREE.TorusGeometry(2.7, 0.4, 10, 24, Math.PI), toon('#7a5a4a', { map: brickTex }), 0, 1.3, tz + 0.05, { ol: 0.03 });
+  for (const s of [-1, 1]) part(R, box(1.2, 6, 11), darkM, s * 3.1, 3, tz - 5.5, { ol: 0, shadow: false });
+  part(R, box(8, 6, 1), darkM, 0, 3, tz - 11, { ol: 0, shadow: false });
+  part(R, box(6.4, 0.4, 10), darkM, 0, 6.2, tz - 6, { ol: 0, shadow: false });
+  const sign = labelSprite('下水道', 'この先、真っ暗', '#9be37a'); sign.scale.multiplyScalar(0.7); sign.position.set(0, 6.4, tz + 0.6); R.add(sign);
+  return D;
+}
+
+function buildSewer() {
+  const D = AREA_DEF.sewer, path = D.path, A = D.arena;
+  const R = new THREE.Group(); S.root.add(R); D.root = R; D.obstacles = [];
+  const bb = pathBounds(path, A);
+  const water = new THREE.Mesh(new THREE.PlaneGeometry(bb.x1 - bb.x0 + 80, bb.z1 - bb.z0 + 60), toon('#2f5d4a', { map: rippleTex, emissive: new THREE.Color('#0c2a1e') }));
+  water.rotation.x = -Math.PI / 2; water.position.set((bb.x0 + bb.x1) / 2, -0.35, (bb.z0 + bb.z1) / 2); R.add(water);
+  rippleTex.repeat.set(16, 30);
+  const sewerM = toon('#6f7884', { map: stoneTexW }), edgeM = toon('#4a515c', { map: stoneTexW });
+  buildPathFloor(R, path, { mat: sewerM, top: FLOOR.SEWER, thick: 0.7, edge: edgeM });
+  // 闘技場（大ドブネズミのねぐら）：道と同じ素材・同じ高さ
+  floorPiece(R, A.x, A.z, 0, A.r * 2, FLOOR.SEWER, 0.7, sewerM);
+  floorPiece(R, A.x, A.z, 0, A.r * 2 + 0.4, FLOOR.EDGE, 0.7, edgeM);
+  const ring = new THREE.Mesh(new THREE.RingGeometry(A.r - 0.5, A.r - 0.25, 64), basic('#8a3a3a'));
+  ring.rotation.x = -Math.PI / 2; ring.position.set(A.x, FLOOR.SEWER + 0.015, A.z); R.add(ring);
+  for (let k = 0; k < 14; k++) {
+    const a = k / 14 * Math.PI * 2;
+    const x = A.x + Math.cos(a) * (A.r + 1.2), z = A.z + Math.sin(a) * (A.r + 1.2);
+    if (pathDistOf(path, null, x, z) < 1.2) continue;
+    part(R, cyl(0.7, 0.8, 5 + (k % 3), 12), toon('#5b5360', { map: brickTex }), x, 2.3, z, { receive: true, ol: 0.03 });
   }
-  // 下水道の入口（レンガのアーチ）
-  const ent = PATH[3];
-  const arch = new THREE.Group(); arch.position.set(ent.x, 0, ent.z); R.add(arch);
-  part(arch, new THREE.TorusGeometry(3.0, 0.45, 10, 24, Math.PI), toon('#7a5a4a', { map: brickTex }), 0, 0.2, 0, { ol: 0.03 });
-  for (const s of [-1, 1]) part(arch, box(6, 4.6, 1.2), toon('#6b4f42', { map: brickTex }), s * 6.4, 2.3, 0, { receive: true, ol: 0.03 });
-  const sewerSign = labelSprite('下水道', 'この先、くさい', '#9be37a'); sewerSign.scale.multiplyScalar(0.7); sewerSign.position.set(ent.x, 4.6, ent.z + 0.5); R.add(sewerSign);
-  // 下水道の壁とパイプ
-  seed = 41;
-  for (let i = 3; i < PATH.length - 1; i++) {
-    const a = PATH[i], b = PATH[i + 1];
+  const junk = [[-2.5, -7, '#a07444'], [2.8, -7.5, '#5f7a8a'], [0, -8.5, '#8a6236'], [-4.5, -4.5, '#6b6380'], [4.6, -4.8, '#a07444']];
+  const rj = seeded(5);
+  for (const [x, z, c] of junk) part(R, box(1.6, 1.2 + rj(), 1.4), c, A.x + x, 0.7, A.z + z, { ry: rj(), receive: true });
+  const sign = labelSprite('大ドブネズミのねぐら', '', '#ff6a4d'); sign.scale.multiplyScalar(0.8); sign.position.set(A.x, 4.2, A.z - 9); R.add(sign);
+  // 鉄格子：道が広場の縁に入る位置に、縁に沿って置く
+  const pEnd = path[path.length - 1], pPrev = path[path.length - 2];
+  const ux0 = pEnd.x - A.x, uz0 = pEnd.z - A.z, ul = Math.hypot(ux0, uz0), ux = ux0 / ul, uz = uz0 / ul;
+  const sl = Math.hypot(pEnd.x - pPrev.x, pEnd.z - pPrev.z);
+  const cosA = Math.abs(((pEnd.x - pPrev.x) * ux + (pEnd.z - pPrev.z) * uz) / sl);
+  const gw = pEnd.w / Math.max(0.5, cosA) + 0.6;
+  const gate = new THREE.Group();
+  gate.position.set(A.x + ux * (A.r + 0.25), -3, A.z + uz * (A.r + 0.25));
+  gate.rotation.y = Math.atan2(ux, uz); R.add(gate);
+  const nb = Math.round(gw / 0.7);
+  for (let k = 0; k <= nb; k++) part(gate, cyl(0.07, 0.07, 2.6, 8), '#3a3348', -gw / 2 + k * gw / nb, 1.3, 0, { ol: 0.015 });
+  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 2.5, 0, { ol: 0.015 });
+  part(gate, box(gw + 0.2, 0.15, 0.15), '#3a3348', 0, 0.6, 0, { ol: 0.015 });
+  S.gate = gate;
+  S.animated.push((dt) => { const ty = S.bossLock ? 0 : -3; gate.position.y += (ty - gate.position.y) * Math.min(1, dt * 6); });
+  // 壁とパイプ
+  const rnd = seeded(41);
+  for (let i = 0; i < path.length - 1; i++) {
+    const a = path[i], b = path[i + 1];
     const len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
     for (let t = 1.5; t <= len; t += 2.6) for (const s of [-1, 1]) {
       const off = a.w / 2 + 2.2 + rnd() * 0.8;
       const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
-      if (pathDist(x, z) < 1.6 || z > SEWER_Z - 2 || Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r + 2) continue;
+      if (pathDistOf(path, A, x, z) < 1.6 || z > path[0].z - 1 || Math.hypot(x - A.x, z - A.z) < A.r + 2) continue;
       const h = 1.3 + rnd() * 0.9;
       part(R, box(2.4, h, 2.4), toon('#55505e', { map: brickTex }), x, h / 2 - 0.35, z, { ry: Math.atan2(dx, dz), receive: true, ol: 0.03 });
       if (rnd() < 0.3) {
@@ -1915,9 +2040,75 @@ function buildStageMap() {
       }
     }
   }
-  // 足元の灯り
-  S.lamp = new THREE.PointLight(0xffc27a, 0, 10, 2); scene.add(S.lamp);
-  S.built = true;
+  // スタート地点の後ろ：通ってきた真っ暗なトンネル
+  const darkM = new THREE.MeshBasicMaterial({ color: '#000000' });
+  const brickM = toon('#55505e', { map: brickTex });
+  const sz = path[0].z + 2.4;
+  // カメラが後ろから見下ろすので、壁は低くして視界をふさがない
+  for (const s of [-1, 1]) part(R, box(14, 2.2, 1.4), brickM, s * (2.4 + 7), 0.75, sz + 0.7, { receive: true, ol: 0.03 });
+  part(R, box(4.8, 0.5, 1.4), brickM, 0, 1.6, sz + 0.7, { ol: 0.03 });
+  part(R, box(4.8, 1.35, 6), darkM, 0, 0.68, sz + 3.6, { ol: 0, shadow: false });
+  return D;
+}
+
+/* ---------- エリアの読み込み ---------- */
+function spawnArea(D) {
+  const L = pathLength(D.path);
+  for (const [dist, n] of D.spawns) {
+    const p = pointAt(D.path, dist);
+    for (let k = 0; k < n; k++) {
+      let px = p.x, pz = p.z;
+      for (let tries = 0; tries < 12; tries++) {
+        const lat = (Math.random() - 0.5) * (p.w - 1.4), lon = (Math.random() - 0.5) * 3;
+        px = p.x + p.dz * lat + p.dx * lon; pz = p.z - p.dx * lat + p.dz * lon;
+        if (stageWalkable(px, pz, 0.5)) break;
+      }
+      makeRat(px, pz);
+    }
+  }
+  const end = D.tunnelFrom ? pathLength(D.path.slice(0, D.tunnelFrom + 1)) - 4 : L - 4;
+  let side = 1;
+  for (let d = 8; d < end; d += 9) {
+    const p = pointAt(D.path, d);
+    side = -side;
+    dropFish(p.x + p.dz * side * 1.1, p.z - p.dx * side * 1.1, 10, true);
+  }
+}
+function loadArea(key) {
+  clearEntities();
+  if (!S.built) buildStageRoot();
+  const D = AREA_DEF[key];
+  if (!D.root) (key === 'alley' ? buildAlley : buildSewer)();
+  for (const k in AREA_DEF) if (AREA_DEF[k].root) AREA_DEF[k].root.visible = (k === key);
+  S.area = key; PATH = D.path; ARENA = D.arena; S.obstacles = D.obstacles;
+  S.bossStarted = false; S.bossLock = false;
+  const st = D.path[0];
+  ps.x = st.x; ps.z = st.z - (key === 'alley' ? 2 : 3); ps.yaw = Math.PI; ps.kx = ps.kz = 0; ps.mode = 'idle'; ps.actionT = 0;
+  camera.position.set(ps.x, 11, ps.z + 10);
+  spawnArea(D);
+  if (ARENA) makeBoss();
+  $('#bossBar').hidden = true;
+  setEnv(D.env);
+}
+function goSewer() {
+  if (S.loading) return;
+  S.loading = true;
+  keys.clear();
+  const L = $('#loadArea'); L.hidden = false;
+  $('#loadArea i').style.width = '0%';
+  requestAnimationFrame(() => { $('#loadArea i').style.width = '100%'; });
+  setTimeout(() => {
+    loadArea('sewer');
+    S.darkT = 1;
+    setTimeout(() => {
+      L.hidden = true; S.loading = false;
+      banner('下水道', 'くねくね道の先に、大ドブネズミのねぐらがある', '#9be37a', 'AREA');
+      if (!S.said.sewer) {
+        S.said.sewer = true;
+        talk([{ who: 'noneko', text: 'うっ…ひでえニオイだ。でも、ここで引き返すわけにはいかねえ。' }]);
+      }
+    }, 1100);
+  }, 80);
 }
 
 /* ---------- 敵 ---------- */
@@ -2372,7 +2563,7 @@ function playerDown() {
     kicker: 'GAME OVER', title: 'やられた…', accent: '#ff6a4d', noClose: true,
     html: `<p class="lead">ノネコは力つきてしまった。修行の間でレベルを上げたり、道具屋でカリカリを買ってから再挑戦しよう。</p>
       <p class="note">倒したドブネズミ ${S.stats.kills}匹 ／ 拾ったニボシ ${S.stats.nibosi}</p>
-      <div class="actions"><button class="btn" data-act="retry">もう一度挑戦</button><button class="btn ghost" data-act="home">基地にもどる</button></div>`
+      <div class="actions"><button class="btn" data-act="retryArea">この場所からやり直す</button><button class="btn ghost" data-act="retry">最初からやり直す</button><button class="btn ghost" data-act="home">基地にもどる</button></div>`
   }), 1300);
 }
 function showClear() {
@@ -2433,61 +2624,60 @@ function setEnv(k) {
   renderer.setClearColor(e.bg, 1);
   if (S.lamp) S.lamp.intensity = k === 'sewer' ? 0.9 : 0;
 }
-function enterStage() {
+function enterStage(fromMovie) {
   closePanel();
-  if (!S.built) buildStageMap();
+  if (!S.built) buildStageRoot();
   mode = 'stage';
   world.visible = false; S.root.visible = true;
   resetStage();
   document.body.classList.add('in-stage');
   curRoom = undefined; setRoom(null);
   setHint();
-  talk([
-    { who: 'nar', text: 'ねこだまり基地の裏手。夜の路地裏――' },
-    { who: 'noneko', text: '聞いたか？ この先の下水道に、でっかいドブネズミが住みついてるってウワサだ。' },
-    { who: 'noneko', text: 'そいつを倒せば、オレの名も猫界にとどろくってもんだ。行くぜ！' },
-    { who: 'nar', text: matchMedia('(pointer: coarse)').matches
-      ? '右下のボタンでひっかく。画面をスライドすると視点を回せる。ドブネズミを倒してニボシを集めながら、下水道の奥を目指そう。'
-      : 'スペースキーかクリックでひっかく。ドラッグで視点を回せる。ドブネズミを倒してニボシを集めながら、下水道の奥を目指そう。' }
-  ], () => banner('第1話', '下水道の大ドブネズミ', '#ffb547', 'STORY'));
+  const coarse = matchMedia('(pointer: coarse)').matches;
+  const intro = () => talk([
+    { who: 'noneko', text: 'ここが基地の裏の路地裏だ。この先の下水道に、ウワサの大ドブネズミがいる。' },
+    { who: 'noneko', text: '道はけっこう長えな…ドブネズミどもを片づけながら進むとするか。' },
+    { who: 'nar', text: coarse
+      ? '右下のボタンでひっかく。スティックを端まで倒すと走る。画面をスライドすると視点を回せる。'
+      : 'スペースキーかクリックでひっかく。Shiftで走る。ドラッグで視点を回せる。' }
+  ]);
+  // 路地裏を見わたすカット → 会話
+  const far = pointAt(PATH, 70);
+  playCine([{
+    dur: 4.6, title: true,
+    cam: [[far.x + 10, 30, far.z + 10], [ps.x, 10.5, ps.z + 10]],
+    look: [[far.x, 0, far.z], [ps.x, 0.8, ps.z]]
+  }], intro);
+  if (fromMovie) flash(false);
 }
 function clearEntities() {
+  if (!S.ents) return;
   clearTeles();
   while (S.ents.children.length) S.ents.remove(S.ents.children[0]);
   S.enemies = []; S.drops = []; S.splats = []; S.boss = null;
   clearNums();
 }
-function resetStage() {
-  clearEntities();
+function resetStage(areaKey) {
   closePanel();
   const st = stats(state.lv);
   S.hp = S.maxHp = st.hp; S.inv = 0; S.shake = 0;
-  S.over = false; S.defeat = false; S.cleared = false; S.bossStarted = false; S.bossLock = false;
-  S.stats = { kills: 0, nibosi: 0 }; S.said = {}; S.zone = '';
-  ps.x = 0; ps.z = 4; ps.yaw = Math.PI; ps.kx = ps.kz = 0; ps.mode = 'idle'; ps.actionT = 0;
+  S.over = false; S.defeat = false; S.cleared = false; S.loading = false; S.darkT = 0;
+  if (!areaKey) { S.stats = { kills: 0, nibosi: 0 }; S.said = {}; }
   player.root.rotation.x = 0; player.root.visible = true;
   cam.yaw = 0; cam.elev = CAM_ELEV;
-  const spawns = [[1, -8, 2], [6, -21, 2], [7, -39, 2], [-3, -53, 3], [2, -64, 2], [7.5, -73, 3]];
-  for (const [x, z, n] of spawns) for (let k = 0; k < n; k++) {
-    let px = x, pz = z;
-    for (let tries = 0; tries < 10; tries++) { const a = Math.random() * 6.28, r = Math.random() * 1.6; px = x + Math.cos(a) * r; pz = z + Math.sin(a) * r; if (stageWalkable(px, pz, 0.5)) break; }
-    makeRat(px, pz);
-  }
-  const fish = [[-1.5, -4], [1.5, -11], [4, -19], [7, -28], [5, -45], [-2, -49], [-4, -57], [3, -65], [7, -71], [4, -81]];
-  for (const [x, z] of fish) dropFish(x, z, 10, true);
-  makeBoss();
-  $('#bossBar').hidden = true;
+  loadArea(areaKey || 'alley');
+  $('#dark').style.opacity = '0';
   updateHpBar(); refreshItemBtn();
-  setEnv('alley');
 }
 function exitStage() {
   closePanel();
   if (dlg.active) { dlg.active = false; $('#dlg').hidden = true; }
+  if (cine.active) endCine();
   clearEntities();
   mode = 'home';
   S.root.visible = false; world.visible = true;
   document.body.classList.remove('in-stage');
-  $('#bossBar').hidden = true;
+  $('#bossBar').hidden = true; $('#dark').style.opacity = '0'; $('#loadArea').hidden = true;
   setEnv('home');
   const door = ROOMS[0].group.localToWorld(new THREE.Vector3(0, 0, 2.5));
   ps.x = door.x; ps.z = door.z; ps.yaw = 0; ps.mode = 'idle'; ps.kx = ps.kz = 0;
@@ -2501,29 +2691,28 @@ function updateStage(dt, paused) {
   if (S.inv > 0) S.inv -= dt;
   player.root.visible = !(S.inv > 0 && !S.over && Math.floor(S.inv * 14) % 2 === 0);
   if (S.defeat) player.root.rotation.x += (-1.35 - player.root.rotation.x) * Math.min(1, dt * 6);
-  // 場所が変わったとき
-  const zone = ps.z < SEWER_Z ? 'sewer' : 'alley';
-  if (zone !== S.zone) {
-    S.zone = zone; setEnv(zone);
-    if (zone === 'sewer' && !S.said.sewer) {
-      S.said.sewer = true;
-      banner('下水道', 'くねくね道の先に、大ドブネズミのねぐらがある', '#9be37a', 'AREA');
-      talk([{ who: 'noneko', text: 'うっ…ひでえニオイだ。でも、ここで引き返すわけにはいかねえ。' }]);
-    }
+  // 真っ暗なトンネル：奥に進むほど暗くなり、一定まで進むと下水道を読み込む
+  const D = AREA_DEF[S.area];
+  let dark = 0;
+  if (S.area === 'alley') {
+    dark = THREE.MathUtils.clamp((D.tunnelZ + 3 - ps.z) / (D.tunnelZ + 3 - D.loadZ), 0, 1);
+    if (ps.z < D.loadZ && !S.over) goSewer();
   }
+  if (S.darkT > 0) { S.darkT = Math.max(0, S.darkT - dt * 0.8); dark = Math.max(dark, S.darkT); }
+  $('#dark').style.opacity = S.loading ? '1' : String(dark);
   if (S.lamp) S.lamp.position.set(ps.x, 2.6, ps.z + 0.5);
   for (let i = S.splats.length - 1; i >= 0; i--) {
     const s = S.splats[i]; s.t += dt;
     s.m.material.opacity = 0.7 * Math.max(0, 1 - s.t / 2.5);
     if (s.t > 2.5) { S.ents.remove(s.m); S.splats.splice(i, 1); }
   }
-  if (!paused) {
+  if (!paused && !S.loading) {
     for (const e of S.enemies) updateRat(e, dt);
     separateEnemies();
     S.enemies = S.enemies.filter((e) => !e.gone);
     if (S.boss) updateBoss(dt);
     updateDrops(dt);
-    if (!S.bossStarted && !S.over && Math.hypot(ps.x - ARENA.x, ps.z - ARENA.z) < ARENA.r - 2.2) startBossFight();
+    if (ARENA && !S.bossStarted && !S.over && Math.hypot(ps.x - ARENA.x, ps.z - ARENA.z) < ARENA.r - 2.2) startBossFight();
   }
 }
 
@@ -2531,16 +2720,19 @@ function updateStage(dt, paused) {
 function drawStageMap() {
   const W = mm.width;
   mctx.clearRect(0, 0, W, W);
-  const s = W / 120, cx = W / 2 - 2 * s, cz = W / 2 + 48 * s;
+  const bb = pathBounds(PATH, ARENA);
+  const s = (W - 24) / Math.max(bb.x1 - bb.x0 + 8, bb.z1 - bb.z0 + 8);
+  const cx = W / 2 - (bb.x0 + bb.x1) / 2 * s, cz = W / 2 - (bb.z0 + bb.z1) / 2 * s;
   const X = (x) => cx + x * s, Z = (z) => cz + z * s;
+  const sewer = S.area === 'sewer';
   mctx.lineCap = 'round'; mctx.lineJoin = 'round';
-  mctx.strokeStyle = '#2f5d4a'; mctx.lineWidth = 7 * s;
+  mctx.strokeStyle = sewer ? '#6f7884' : '#7a6fa0'; mctx.lineWidth = Math.max(5, PATH[1].w * s);
   mctx.beginPath(); PATH.forEach((p, i) => (i ? mctx.lineTo(X(p.x), Z(p.z)) : mctx.moveTo(X(p.x), Z(p.z)))); mctx.stroke();
-  mctx.strokeStyle = '#6f7884'; mctx.lineWidth = 4.4 * s;
-  mctx.beginPath(); PATH.forEach((p, i) => (i ? mctx.lineTo(X(p.x), Z(p.z)) : mctx.moveTo(X(p.x), Z(p.z)))); mctx.stroke();
-  mctx.strokeStyle = '#5c5378'; mctx.lineWidth = 5.6 * s;
-  mctx.beginPath(); for (let i = 0; i <= 3; i++) { const p = PATH[i]; i ? mctx.lineTo(X(p.x), Z(p.z)) : mctx.moveTo(X(p.x), Z(p.z)); } mctx.stroke();
-  mctx.fillStyle = '#646d78'; mctx.beginPath(); mctx.arc(X(ARENA.x), Z(ARENA.z), ARENA.r * s, 0, Math.PI * 2); mctx.fill();
+  if (!sewer) {
+    const D = AREA_DEF.alley, t = D.path[D.tunnelFrom], e = D.path[D.path.length - 1];
+    mctx.strokeStyle = '#000'; mctx.beginPath(); mctx.moveTo(X(t.x), Z(t.z)); mctx.lineTo(X(e.x), Z(e.z)); mctx.stroke();
+  }
+  if (ARENA) { mctx.fillStyle = '#6f7884'; mctx.beginPath(); mctx.arc(X(ARENA.x), Z(ARENA.z), ARENA.r * s, 0, Math.PI * 2); mctx.fill(); }
   mctx.fillStyle = '#8fd3ec';
   for (const d of S.drops) { mctx.beginPath(); mctx.arc(X(d.x), Z(d.z), 3, 0, Math.PI * 2); mctx.fill(); }
   mctx.fillStyle = '#ff6a4d';
@@ -2553,6 +2745,99 @@ function drawStageMap() {
   mctx.fillStyle = '#ffb547'; mctx.strokeStyle = '#0d0a1a'; mctx.lineWidth = 3;
   mctx.beginPath(); mctx.moveTo(0, -11); mctx.lineTo(8, 8); mctx.lineTo(-8, 8); mctx.closePath(); mctx.stroke(); mctx.fill();
   mctx.restore();
+}
+
+/* ---------- ムービー ---------- */
+const cine = { active: false, shots: null, i: 0, t: 0, done: null, walk: 0 };
+const cv0 = new THREE.Vector3(), cv1 = new THREE.Vector3(), cl0 = new THREE.Vector3(), cl1 = new THREE.Vector3();
+const RW = (room, x, y, z) => () => { const v = ROOMS[room].group.localToWorld(new THREE.Vector3(x, y, z)); return [v.x, v.y, v.z]; };
+const val = (p) => (typeof p === 'function' ? p() : p);
+function playCine(shots, done) {
+  cine.active = true; cine.shots = shots; cine.i = -1; cine.done = done; cine.walk = 0;
+  document.body.classList.add('cine'); $('#cine').hidden = false; keys.clear();
+  nextShot();
+}
+function nextShot() {
+  cine.i++; cine.t = 0;
+  const sh = cine.shots[cine.i];
+  if (!sh) { endCine(); return; }
+  if (sh.enter) sh.enter();
+  cv0.fromArray(val(sh.cam[0])); cv1.fromArray(val(sh.cam[1]));
+  cl0.fromArray(val(sh.look[0])); cl1.fromArray(val(sh.look[1]));
+  camera.position.copy(cv0);
+  const cap = $('#cineCap');
+  if (sh.cap) {
+    const who = { nar: '', noneko: 'ノネコ', chatora: '店主のチャトラ' }[sh.cap.who];
+    $('#cineName').textContent = who; $('#cineName').hidden = !who;
+    const f = { noneko: faces.noneko, chatora: faces.chatora }[sh.cap.who];
+    $('#cineImg').hidden = !f; if (f) $('#cineImg').src = f;
+    $('#cineText').textContent = sh.cap.text;
+    cap.hidden = false;
+  } else cap.hidden = true;
+  $('#titleCard').classList.toggle('show', !!sh.title);
+}
+function endCine() {
+  if (!cine.active) return;
+  cine.active = false; cine.walk = 0;
+  document.body.classList.remove('cine'); $('#cine').hidden = true;
+  $('#titleCard').classList.remove('show');
+  const d = cine.done; cine.done = null; if (d) d();
+}
+function updateCine(dt) {
+  const sh = cine.shots[cine.i];
+  if (!sh) return;
+  cine.t += dt;
+  const k = Math.min(1, cine.t / sh.dur);
+  const e = k < 0.5 ? 2 * k * k : 1 - Math.pow(-2 * k + 2, 2) / 2;
+  camera.position.lerpVectors(cv0, cv1, e);
+  camLook.lerpVectors(cl0, cl1, e);
+  camera.lookAt(camLook);
+  if (sh.update) sh.update(k, dt);
+  if (cine.t >= sh.dur) nextShot();
+}
+function flash(on) {
+  const f = $('#flash');
+  f.style.transition = on ? 'opacity .5s' : 'opacity .9s';
+  f.style.opacity = on ? '1' : '0';
+}
+$('#cineSkip').addEventListener('click', (e) => { e.stopPropagation(); if (cine.skip) cine.skip(); else endCine(); });
+// 出撃ムービー：基地 → 道具屋でウワサを聞く → 決意 → ゲートへ → 出撃
+function departMovie() {
+  closePanel();
+  const shop = 3, gate = 0;
+  const shopYaw = () => ROOMS[shop].group.rotation.y + Math.PI;
+  const gateYaw = () => ROOMS[gate].group.rotation.y + Math.PI;
+  const put = (room, x, z, yaw) => { const v = ROOMS[room].group.localToWorld(new THREE.Vector3(x, 0, z)); ps.x = v.x; ps.z = v.z; ps.yaw = yaw; ps.mode = 'idle'; };
+  let attacked = false;
+  const go = () => { cine.skip = null; flash(true); setTimeout(() => endCine(), 520); };
+  cine.skip = go;
+  playCine([
+    {
+      dur: 4.4, cam: [[0, 34, 30], [0, 22, 19]], look: [[0, 0, -6], [0, 0, -1]],
+      cap: { who: 'nar', text: '夜の路地裏にある、ノラネコたちの隠れ家――ねこだまり基地。' },
+      enter: () => put(shop, 0, 0.2, shopYaw())
+    },
+    {
+      dur: 5.0, cam: [RW(shop, 3.6, 2.6, 1.6), RW(shop, 2.7, 2.1, 0.6)], look: [RW(shop, 0, 1.1, -1.2), RW(shop, 0, 1.0, -1.3)],
+      cap: { who: 'chatora', text: '聞いたかい、ノネコ。下水道に“大ドブネズミ”ってのが住みついて、町のネコたちが困ってるらしいよ。' }
+    },
+    {
+      dur: 4.6, cam: [RW(shop, -1.4, 1.5, -0.9), RW(shop, -0.95, 1.35, -0.7)], look: [RW(shop, 0, 1.2, 0.2), RW(shop, 0, 1.15, 0.2)],
+      cap: { who: 'noneko', text: '大ドブネズミ…？ へっ、そいつを倒せば、オレの名も猫界にとどろくってもんだ！' },
+      update: (k) => { if (k > 0.62 && !attacked) { attacked = true; ps.mode = 'attack'; ps.actionT = 0; } }
+    },
+    {
+      dur: 4.4, cam: [RW(gate, 1.8, 2.6, 8.0), RW(gate, 0.7, 2.1, 3.0)], look: [RW(gate, 0, 1.4, -2.6), RW(gate, 0, 1.5, -2.6)],
+      cap: { who: 'nar', text: '目指すは家の裏の路地裏、その先の下水道。ノネコ、出撃！' },
+      enter: () => put(gate, 0, 4.0, gateYaw()),
+      update: (k) => { cine.walk = 1; const v = ROOMS[gate].group.localToWorld(new THREE.Vector3(0, 0, 4.0 - 5.2 * k)); ps.x = v.x; ps.z = v.z; }
+    },
+    {
+      dur: 0.9, cam: [RW(gate, 0.7, 2.1, 3.0), RW(gate, 0.4, 1.9, 1.6)], look: [RW(gate, 0, 1.5, -2.6), RW(gate, 0, 1.6, -2.6)],
+      enter: () => flash(true),
+      update: (k) => { cine.walk = 1; const v = ROOMS[gate].group.localToWorld(new THREE.Vector3(0, 0, -1.2 - 1.0 * k)); ps.x = v.x; ps.z = v.z; }
+    }
+  ], () => { cine.skip = null; enterStage(true); });
 }
 
 /* ---------- 汎用パネル ---------- */
@@ -2617,7 +2902,7 @@ function step() {
   const dt = Math.min(clock.getDelta(), 0.05);
   worldT += dt;
   const stage = mode === 'stage';
-  const inUI = !$('#panel').hidden || dlg.active;
+  const inUI = !$('#panel').hidden || dlg.active || cine.active || (stage && S.loading);
   const canMove = !viewer.on && !inUI && !(stage && S.over);
   let kx = 0, kz = 0;
   if (canMove) {
@@ -2663,7 +2948,7 @@ function step() {
   ps.turn += (THREE.MathUtils.clamp(turnRate * 0.12, -1, 1) - ps.turn) * Math.min(1, dt * 8);
   const vRun = viewer.on && viewer.pose === 'run';
   const wantRun = viewer.on ? (vRun ? 1 : 0) : (running && !attacking ? 1 : 0);
-  const wantWalk = viewer.on ? (viewer.pose === 'walk' ? 1 : 0) : (moving && !(running && !attacking) ? Math.max(0.45, Math.min(1, mag / 0.82)) : 0);
+  const wantWalk = cine.active ? cine.walk : viewer.on ? (viewer.pose === 'walk' ? 1 : 0) : (moving && !(running && !attacking) ? Math.max(0.45, Math.min(1, mag / 0.82)) : 0);
   ps.walk += (wantWalk - ps.walk) * Math.min(1, dt * 8);
   ps.run += (wantRun - ps.run) * Math.min(1, dt * 6);
   // 走ると足元に土ぼこり
@@ -2710,7 +2995,7 @@ function step() {
         pk.g.visible = false; pk.respawn = 18; state.nibosi += 10; save(); refreshHud(); toast('ニボシ +10');
       }
     }
-    if (!viewer.on) setRoom(roomAt(ps.x, ps.z));
+    if (!viewer.on && !cine.active) setRoom(roomAt(ps.x, ps.z));
   }
   updateNums(dt);
 
@@ -2718,7 +3003,9 @@ function step() {
   sun.position.set(ps.x + 9, 18, ps.z + 7); sun.target.position.set(ps.x, 0, ps.z);
 
   // カメラ
-  if (viewer.on) {
+  if (cine.active) {
+    updateCine(dt);
+  } else if (viewer.on) {
     const narrow = window.innerWidth < 640 && !isCompact();
     const side = narrow ? 0 : (isCompact() ? -0.75 : -0.6);
     camPos.set(ps.x + side, narrow ? 1.0 : 1.15, ps.z + viewer.dist);
@@ -2732,7 +3019,7 @@ function step() {
     camLook.set(ps.x, 0.8, ps.z);
     camera.position.lerp(camPos, Math.min(1, dt * 7));
   }
-  camera.lookAt(camLook);
+  if (!cine.active) camera.lookAt(camLook);
   if (stage && S.shake > 0) {
     camera.position.x += (Math.random() - 0.5) * S.shake; camera.position.y += (Math.random() - 0.5) * S.shake;
     S.shake = Math.max(0, S.shake - dt * 1.2);
@@ -2752,6 +3039,7 @@ function start() {
     faces.noneko = portraitURL;
     { const r = buildRat(); animateRat(r, 0.01, {}); faces.rat = renderPortrait(r.root, [0.55, 0.75, 1.55], [0, 0.48, 0.35]); }
     { const r = buildRat({ boss: true, fur: '#5e5248', belly: '#9c8b74' }); animateRat(r, 0.01, {}); faces.boss = renderPortrait(r.root, [0.55, 0.8, 1.55], [0, 0.52, 0.35]); }
+    { const c = buildCat({ base: '#e09a4f', stripe: '#b0602a', cream: '#fff1dc', eye: '#79c7e8', scarfOn: false, sakura: false, scar: false, fang: false, belt: false }); animateCat(c, 0.01, { walk: 0, mode: 'idle' }); c.head.rotation.set(0, -0.25, 0); for (const e of c.eyes) e.scale.y = 1; faces.chatora = renderPortrait(c.root, [-0.55, 1.35, 2.2], [0, 1.22, 0]); }
     $('#portrait').src = portraitURL;
     refreshHud(); setHint();
     camera.position.set(ps.x, 16, ps.z + 16);
@@ -2759,7 +3047,7 @@ function start() {
     $('#loading').classList.add('done');
     banner('ねこだまり基地', '路地裏にあるノネコたちの隠れ家', '#ffb547', 'HOME');
     requestAnimationFrame(step);
-    window.__nk = { ps, openPanel, ROOMS, enterStage, S, cam, ARENA, nextLine, dlg };
+    window.__nk = { ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goSewer, get ARENA() { return ARENA; } };
   } catch (err) {
     console.error(err);
     $('#loadMsg').className = 'err';
