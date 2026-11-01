@@ -144,6 +144,10 @@ button:focus-visible { outline: 3px solid var(--fish); outline-offset: 2px; }
 .prof { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0 0 10px; font-size: 13px; }
 .prof dt { color: var(--muted); font-weight: 800; }
 .prof dd { margin: 0; }
+.subh { margin: 16px 0 6px; font-family: var(--display); font-weight: 400; font-size: 17px; color: var(--accent); }
+.skset { display: flex; gap: 6px; flex: none; }
+.skset .btn { padding: 6px 12px; font-family: var(--display); font-weight: 400; }
+.skset .btn[aria-pressed="true"] { background: var(--accent); }
 .actions { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
 
 /* ---------- キャラ閲覧 ---------- */
@@ -240,14 +244,27 @@ button:focus-visible { outline: 3px solid var(--fish); outline-offset: 2px; }
   #vctrl .btn { padding: 6px 10px; font-size: 12px; white-space: nowrap; flex: none; }
 }
 /* ---------- ステージ ---------- */
-#btnMenu, #btnItem { display: none; }
+#btnMenu, #btnItem, .skillbtn { display: none; }
+body.in-stage .skillbtn { display: grid; }
 body.in-stage #btnView { display: none; }
 body.in-stage #btnMenu { display: block; }
 body.in-stage #btnItem { display: block; }
 #btnMenu { font-size: 13px; padding: 8px 12px; }
 body.in-stage #btnAct { background: var(--ember); font-family: var(--display); font-weight: 400; font-size: 18px; min-width: 104px; height: 104px; border-radius: 52px; }
+/* 右下：ひっかく（大）、その左にB、上にC、斜め左上にカリカリ */
+.skillbtn {
+  position: absolute; width: 78px; height: 78px; border-radius: 39px; padding: 0; place-items: center; overflow: hidden;
+  background: var(--fish); font-size: 11px; line-height: 1.1; --p: 0%;
+}
+.skillbtn .slot { position: absolute; top: 7px; left: 50%; transform: translateX(-50%); font-family: var(--display); font-weight: 400; font-size: 13px; color: var(--line); }
+.skillbtn .sn { margin-top: 12px; padding: 0 6px; text-align: center; font-weight: 800; }
+.skillbtn::after { content: ""; position: absolute; inset: 0; background: conic-gradient(rgba(13,10,26,.72) var(--p), transparent 0); pointer-events: none; }
+.skillbtn .cdn { position: absolute; inset: 0; display: grid; place-items: center; font-family: var(--display); font-size: 24px; color: var(--ink); text-shadow: 0 2px 0 var(--line); z-index: 1; pointer-events: none; }
+.skillbtn.cooling .sn, .skillbtn.cooling .slot { opacity: .5; }
+#btnB { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 116px); bottom: calc(26px + env(safe-area-inset-bottom, 0px)); }
+#btnC { right: calc(max(18px, env(safe-area-inset-right, 0px)) + 13px); bottom: calc(150px + env(safe-area-inset-bottom, 0px)); }
 #btnItem {
-  position: absolute; right: calc(max(18px, env(safe-area-inset-right, 0px)) + 118px); bottom: calc(30px + env(safe-area-inset-bottom, 0px));
+  position: absolute; right: calc(max(18px, env(safe-area-inset-right, 0px)) + 112px); bottom: calc(122px + env(safe-area-inset-bottom, 0px));
   width: 70px; height: 70px; border-radius: 35px; padding: 0; font-size: 12px; line-height: 1.1;
 }
 #btnItem small { font-size: 12px; color: var(--leaf); }
@@ -268,6 +285,7 @@ body.in-stage #banner { top: calc(84px + env(safe-area-inset-top, 0px)); }
 .num.hurt { color: var(--ember); font-size: 24px; }
 .num.fish { color: var(--fish); font-size: 16px; }
 .num.heal { color: var(--leaf); }
+.num.skill { color: var(--fish); font-size: 17px; }
 .num.alert { color: var(--lantern); font-size: 18px; }
 #dlg {
   position: absolute; inset: 0; z-index: 3; display: flex; align-items: flex-end; justify-content: center; cursor: pointer;
@@ -285,7 +303,12 @@ body.in-stage #banner { top: calc(84px + env(safe-area-inset-top, 0px)); }
 @media (prefers-reduced-motion: reduce) { .dnext { animation: none; } .bbar i { transition: none; } }
 @media (orientation: landscape) and (max-height: 520px) {
   body.in-stage #btnAct { min-width: 84px; height: 84px; border-radius: 42px; font-size: 15px; }
-  #btnItem { right: calc(max(22px, calc(env(safe-area-inset-right, 0px) + 8px)) + 94px); bottom: calc(16px + env(safe-area-inset-bottom, 0px)); width: 58px; height: 58px; font-size: 11px; }
+  #btnItem { right: calc(max(22px, calc(env(safe-area-inset-right, 0px) + 8px)) + 88px); bottom: calc(96px + env(safe-area-inset-bottom, 0px)); width: 50px; height: 50px; font-size: 10px; }
+  .skillbtn { width: 62px; height: 62px; font-size: 10px; }
+  .skillbtn .slot { top: 5px; font-size: 11px; }
+  .skillbtn .cdn { font-size: 20px; }
+  #btnB { right: calc(max(22px, calc(env(safe-area-inset-right, 0px) + 8px)) + 94px); bottom: calc(14px + env(safe-area-inset-bottom, 0px)); }
+  #btnC { right: calc(max(22px, calc(env(safe-area-inset-right, 0px) + 8px)) + 11px); bottom: calc(110px + env(safe-area-inset-bottom, 0px)); }
   #bossBar { top: calc(8px + env(safe-area-inset-top, 0px)); width: min(320px, 38vw); padding: 4px 10px 6px; }
   #bossBar b { font-size: 13px; }
   .bbar { height: 9px; margin-top: 2px; }
@@ -361,6 +384,8 @@ body.cine #hud, body.cine #banner, body.cine #toast { display: none; }
     <div id="joy" aria-hidden="true"><div id="joyBase"></div><div id="joyKnob"></div><span id="joyTag">ダッシュ</span></div>
     <button id="btnAct" class="btn" disabled>調べる</button>
     <button id="btnItem" class="btn ghost">カリカリ</button>
+    <button id="btnB" class="btn skillbtn" aria-label="B攻撃"><span class="slot">B</span><span class="sn"></span><span class="cdn"></span></button>
+    <button id="btnC" class="btn skillbtn" aria-label="C攻撃"><span class="slot">C</span><span class="sn"></span><span class="cdn"></span></button>
     <div id="bossBar" class="chunky" hidden><b>大ドブネズミ</b><div class="bbar"><i></i></div></div>
     <p id="hint"><kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 押しながらで走る　<kbd>E</kbd> 部屋を開く　<kbd>Esc</kbd> 閉じる</p>
   </div>
@@ -1281,7 +1306,7 @@ function pushOut(p, list) {
 
 /* ================= シーン構築 ================= */
 let player;
-const ps = { x: 0, z: 2.6, yaw: 0, walk: 0, run: 0, turn: 0, mode: 'idle', actionT: 0 };
+const ps = { x: 0, z: 2.6, yaw: 0, walk: 0, run: 0, turn: 0, mode: 'idle', actionT: 0, cd: { B: 0, C: 0 }, cdMax: { B: 0, C: 0 }, invul: 0, spinA: 0, skill: null };
 const dust = [];
 let dustTimer = 0;
 const dustTex = canvasTex(64, 64, (g) => {
@@ -1387,6 +1412,8 @@ window.addEventListener('keydown', (e) => {
     if (e.code === 'Escape') openMenu();
     else if (e.code === 'Space' || e.code === 'KeyJ' || e.code === 'Enter') { e.preventDefault(); playerAttack(); }
     else if (e.code === 'KeyQ') useItem();
+    else if (e.code === 'KeyK') useSkill('B');
+    else if (e.code === 'KeyL') useSkill('C');
     return;
   }
   if (!$('#panel').hidden && e.code === 'Escape') closePanel();
@@ -1447,7 +1474,7 @@ function setRoom(r) {
 }
 function setHint() {
   $('#hint').innerHTML = mode === 'stage'
-    ? '<kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 走る　<kbd>Space</kbd>・クリック ひっかく　<kbd>Q</kbd> カリカリ　ドラッグ 視点　<kbd>Esc</kbd> メニュー'
+    ? '<kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 走る　<kbd>Space</kbd>・クリック ひっかく　<kbd>K</kbd> B攻撃　<kbd>L</kbd> C攻撃　<kbd>Q</kbd> カリカリ　ドラッグ 視点　<kbd>Esc</kbd> メニュー'
     : '<kbd>WASD</kbd> 移動　<kbd>Shift</kbd> 走る　<kbd>E</kbd> 部屋を開く　ドラッグ 視点　<kbd>Esc</kbd> 閉じる';
 }
 
@@ -1457,6 +1484,15 @@ const ITEMS = [
   { id: 'tsume', name: '爪とぎ石', desc: '1回のバトルのあいだ攻撃+5', price: 30 }
 ];
 function statCell(label, v, nv) { return `<div class="stat"><small>${label}</small><b>${v}</b>${nv != null ? `<em>→ ${nv}</em>` : ''}</div>`; }
+function skillSetHTML(cat) {
+  const lo = state.loadout[cat];
+  return `<h3 class="subh">わざセット：${CATS[cat].name}</h3>
+    <p class="note" style="margin-top:0">通常攻撃（ひっかく・いりょく ${NORMAL_POWER}）は固定。4つの固有わざから B攻撃 と C攻撃 に1つずつセットできます。</p>
+    <ul class="list">${SKILLS[cat].map((k) => `
+      <li class="row skrow"><div><b>${k.name}　<span class="chip">いりょく ${k.power}${k.hits > 1 ? '×' + k.hits : ''}</span> <span class="chip">CT ${skillCD(k)}秒</span></b><small>${k.desc}</small></div>
+        <div class="skset"><button class="btn ${lo.B === k.id ? '' : 'ghost'}" data-act="setSkill" data-slot="B" data-id="${k.id}" aria-pressed="${lo.B === k.id}">B</button><button class="btn ${lo.C === k.id ? '' : 'ghost'}" data-act="setSkill" data-slot="C" data-id="${k.id}" aria-pressed="${lo.C === k.id}">C</button></div></li>`).join('')}
+    </ul>`;
+}
 const PANELS = {
   gate: () => `
     <p class="lead">ゲートの先は夜の街のどこか。仲間と力を合わせてボスを倒し、ニボシと新しいネコを手に入れよう。</p>
@@ -1481,8 +1517,9 @@ const PANELS = {
       <div class="ccard"><div class="face"><span class="q" style="color:#3f8a62">?</span></div><b>？？？</b><small>空から来た…</small></div>
       <div class="ccard"><div class="face"><span class="q" style="color:#a0583a">?</span></div><b>？？？</b><small>しっぽが二本</small></div>
     </div>
-    <p class="lead">いま使えるのはノネコだけです。ボスを倒すと、台座の上のネコたちが仲間になります。</p>
-    <div class="actions"><button class="btn" data-act="view">ノネコの姿をくわしく見る</button></div>`,
+    <p class="lead">いま使えるのはノネコだけです。ボスを倒すと、台座の上のネコたちが仲間になります（どのネコも固有わざを4つ持っています）。</p>
+    <div class="actions"><button class="btn" data-act="view">ノネコの姿をくわしく見る</button></div>
+    ${skillSetHTML('noneko')}`,
   shop: () => `
     <p class="lead">店主のチャトラ「いらっしゃい。ニボシで払っておくれ」</p>
     <ul class="list">${ITEMS.map((it) => `
@@ -1493,7 +1530,7 @@ const PANELS = {
   book: () => `
     <ul class="list">
       <li class="row"><div><b>ノネコ <span class="chip">仲間</span></b>
-        <dl class="prof" style="margin-top:8px"><dt>役割</dt><dd>アタッカー（近接）</dd><dt>技</dt><dd>ひっかき連打 ／ 必殺「ノラの意地」</dd><dt>特徴</dt><dd>キジトラ、左耳のさくらカット、右目の上のキズ、ボロの赤いスカーフ</dd></dl>
+        <dl class="prof" style="margin-top:8px"><dt>役割</dt><dd>アタッカー（近接）</dd><dt>わざ</dt><dd>ノラ連撃 ／ とびかかり ／ 回転ネコパンチ ／ ノラの意地</dd><dt>特徴</dt><dd>キジトラ、左耳のさくらカット、右目の上のキズ、ボロの赤いスカーフ</dd></dl>
         <small>路地裏で育った二足歩行のネコ。口は悪いが仲間思い。</small></div></li>
       <li class="row locked"><div><b>？？？ <span class="chip">未発見</span></b><small>アンテナのような影。空から落ちてきたネコらしい。</small></div></li>
       <li class="row locked"><div><b>？？？ <span class="chip">未発見</span></b><small>しっぽが二本ある影。古い町に住むネコのうわさ。</small></div></li>
@@ -1535,6 +1572,12 @@ $('#panel').addEventListener('click', (e) => {
     $('#pBody').innerHTML = PANELS.shop();
   } else if (act === 'view') {
     closePanel(); openViewer();
+  } else if (act === 'setSkill') {
+    const lo = state.loadout[curCat()], slot = b.dataset.slot, other = slot === 'B' ? 'C' : 'B';
+    if (lo[other] === b.dataset.id) lo[other] = lo[slot]; // 反対の枠に入っていたら入れかえる
+    lo[slot] = b.dataset.id; save();
+    toast(`${slot}攻撃に「${skillById(curCat(), b.dataset.id).name}」をセット`);
+    $('#pBody').innerHTML = PANELS.dress();
   } else if (act === 'depart') {
     departMovie();
   } else if (act === 'retryArea') {
@@ -1550,6 +1593,8 @@ $('#panel').addEventListener('click', (e) => {
 $('#btnAct').addEventListener('click', () => { if (mode === 'home' && curRoom) openPanel(curRoom); });
 $('#btnAct').addEventListener('pointerdown', (e) => { if (mode === 'stage') { e.preventDefault(); playerAttack(); } });
 $('#btnItem').addEventListener('click', useItem);
+$('#btnB').addEventListener('pointerdown', (e) => { e.preventDefault(); useSkill('B'); });
+$('#btnC').addEventListener('pointerdown', (e) => { e.preventDefault(); useSkill('C'); });
 $('#btnMenu').addEventListener('click', openMenu);
 
 /* ================= キャラ閲覧モード ================= */
@@ -1769,6 +1814,13 @@ const AREA_DEF = {
       PT(6, -92, 5.6), PT(0, -100, 5.6), PT(0, -108, 5.0), PT(0, -118, 5.0)],
     tunnelFrom: 9, tunnelZ: -108, loadZ: -114,
     arena: null,
+    // 行き止まりの分かれ道（奥にごほうび。見張りのドブネズミがいることも）
+    branches: [
+      { pts: [[0, -6], [-12, -6], [-14, -13]], w: 4.2, guard: 0 },
+      { pts: [[8, -32], [20, -32], [22, -24]], w: 4.2, guard: 2 },
+      { pts: [[-2, -60], [-14, -62], [-16, -72]], w: 4.2, guard: 2 },
+      { pts: [[6, -84], [18, -86]], w: 4.2, guard: 1 }
+    ],
     spawns: [[16, 2], [32, 2], [50, 3], [68, 2], [86, 3], [102, 3]]
   },
   sewer: {
@@ -1776,14 +1828,27 @@ const AREA_DEF = {
     path: [PT(0, 4, 4.4), PT(0, -8, 4.4), PT(9, -16, 4.4), PT(9, -30, 4.4), PT(-3, -40, 4.4), PT(-3, -54, 4.4), PT(8, -64, 4.4),
       PT(8, -80, 4.4), PT(-4, -90, 4.4), PT(-4, -106, 4.4), PT(6, -116, 4.4), PT(6, -132, 4.4), PT(-2, -142, 4.4), PT(-2, -156, 4.4), PT(0, -164, 4.4)],
     arena: { x: 0, z: -174, r: 10 },
+    branches: [
+      { pts: [[0, -2], [-10, -2], [-12, -10]], w: 3.8, guard: 0 },
+      { pts: [[9, -24], [20, -24], [22, -34]], w: 3.8, guard: 2 },
+      { pts: [[-3, -48], [-15, -48], [-17, -40]], w: 3.8, guard: 2 },
+      { pts: [[8, -72], [19, -72], [21, -82]], w: 3.8, guard: 2 },
+      { pts: [[-4, -98], [-16, -98]], w: 3.8, guard: 1 },
+      { pts: [[6, -124], [17, -126], [18, -136]], w: 3.8, guard: 2 }
+    ],
     spawns: [[14, 2], [34, 3], [54, 2], [76, 3], [98, 3], [120, 2], [142, 3], [160, 3]]
   }
 };
-let PATH = AREA_DEF.alley.path, ARENA = null;
+for (const k in AREA_DEF) {
+  const D = AREA_DEF[k];
+  D.branchPaths = D.branches.map((b) => b.pts.map(([x, z]) => PT(x, z, b.w)));
+  D.paths = [D.path, ...D.branchPaths];
+}
+let PATH = AREA_DEF.alley.path, PATHS = AREA_DEF.alley.paths, ARENA = null;
 const S = {
   built: false, root: null, ents: null, obstacles: [], animated: [], enemies: [], drops: [], teles: [], splats: [], boss: null,
   hp: 0, maxHp: 0, inv: 0, shake: 0, over: false, defeat: false, cleared: false, bossStarted: false, bossLock: false,
-  area: 'alley', loading: false, darkT: 0, stats: { kills: 0, nibosi: 0 }, said: {}, gate: null, lamp: null, time: 0
+  area: 'alley', loading: false, fx: [], projs: [], blasts: [], darkT: 0, stats: { kills: 0, nibosi: 0 }, said: {}, gate: null, lamp: null, time: 0
 };
 function segDist(px, pz, a, b) {
   const vx = b.x - a.x, vz = b.z - a.z, wx = px - a.x, wz = pz - a.z;
@@ -1796,14 +1861,20 @@ function pathDistOf(path, arena, x, z) {
   if (arena) d = Math.min(d, Math.hypot(x - arena.x, z - arena.z) - arena.r);
   return d;
 }
-function pathDist(x, z) { return pathDistOf(PATH, ARENA, x, z); }
+function pathDist(x, z) { return pathDistAll(PATHS, ARENA, x, z); }
+function pathDistAll(paths, arena, x, z) {
+  let d = Infinity;
+  for (const p of paths) d = Math.min(d, pathDistOf(p, null, x, z));
+  if (arena) d = Math.min(d, Math.hypot(x - arena.x, z - arena.z) - arena.r);
+  return d;
+}
 function stageWalkable(x, z, rad) {
   if (rad == null) rad = 0.35;
   const inArena = ARENA ? Math.hypot(x - ARENA.x, z - ARENA.z) < ARENA.r - rad - 0.2 : false;
   if (S.bossLock) return inArena;
   if (inArena) return true;
-  for (let i = 0; i < PATH.length - 1; i++) {
-    if (segDist(x, z, PATH[i], PATH[i + 1]) < Math.min(PATH[i].w, PATH[i + 1].w) / 2 - rad) return true;
+  for (const P of PATHS) for (let i = 0; i < P.length - 1; i++) {
+    if (segDist(x, z, P[i], P[i + 1]) < Math.min(P[i].w, P[i + 1].w) / 2 - rad) return true;
   }
   return false;
 }
@@ -1920,28 +1991,69 @@ function pathBounds(path, arena) {
 }
 function seeded(seed) { let s = seed; return () => (s = (s * 9301 + 49297) % 233280) / 233280; }
 
+// アーチ形の穴があいた壁を1枚の形として押し出す（部品を重ねないので面のちらつきが出ない）
+const brickTexA = canvasTex(256, 256, (g, w, h) => {
+  g.fillStyle = '#ffffff'; g.fillRect(0, 0, w, h);
+  g.fillStyle = 'rgba(0,0,0,.28)';
+  for (let r = 0; r < 8; r++) { g.fillRect(0, r * 32, w, 3); for (let c = 0; c < 5; c++) g.fillRect(((c * 64) + (r % 2) * 32) % w, r * 32, 3, 32); }
+}, [0.35, 0.35]);
+function archWall(R, o) {
+  const f = o.facing || 1; // 1: +Z 側を向く, -1: -Z 側を向く
+  const r = o.ow / 2, sy = Math.max(0, o.oh - r);
+  const sh = new THREE.Shape();
+  sh.moveTo(-o.w / 2, 0); sh.lineTo(-r, 0); sh.lineTo(-r, sy);
+  sh.absarc(0, sy, r, Math.PI, 0, true);
+  sh.lineTo(r, 0); sh.lineTo(o.w / 2, 0); sh.lineTo(o.w / 2, o.h); sh.lineTo(-o.w / 2, o.h); sh.closePath();
+  const geo = new THREE.ExtrudeGeometry(sh, { depth: o.depth, bevelEnabled: false, curveSegments: 20 });
+  const g = new THREE.Group(); g.position.set(o.x, 0, o.z); if (f < 0) g.rotation.y = Math.PI; R.add(g);
+  const wall = part(g, geo, toon(o.color, { map: brickTexA }), 0, 0, -o.depth, { receive: true, ol: 0.02 });
+  // 縁どり：壁より 0.25 手前に出す（壁の表面と同じ高さの面を作らない）
+  const tr = new THREE.Shape(), t = 0.38;
+  tr.moveTo(r + t, 0); tr.lineTo(r + t, sy); tr.absarc(0, sy, r + t, 0, Math.PI, false); tr.lineTo(-(r + t), 0); tr.lineTo(-r, 0); tr.lineTo(-r, sy);
+  tr.absarc(0, sy, r, Math.PI, 0, true); tr.lineTo(r, 0); tr.closePath();
+  part(g, new THREE.ExtrudeGeometry(tr, { depth: 0.3, bevelEnabled: false, curveSegments: 20 }), toon(o.trim, { map: brickTexA }), 0, 0, -0.05, { ol: 0.02 });
+  // 奥の暗闇：壁の裏面から 2cm はなした真っ黒な箱
+  const dark = new THREE.Mesh(box(o.ow + 2, o.oh + 1, 10), new THREE.MeshBasicMaterial({ color: '#000000' }));
+  dark.position.set(0, (o.oh + 1) / 2 - 0.15, -o.depth - 0.02 - 5); g.add(dark);
+  return wall;
+}
+// 分かれ道の行き止まり：道の終わりの少し先に、道と直角な壁を立てる（床とは重ねない）
+function buildDeadEnds(R, D, mat, h) {
+  for (const bp of D.branchPaths) {
+    const e = bp[bp.length - 1], q = bp[bp.length - 2];
+    const L = Math.hypot(e.x - q.x, e.z - q.z), dx = (e.x - q.x) / L, dz = (e.z - q.z) / L;
+    const cx = e.x + dx * (e.w / 2 + 0.5), cz = e.z + dz * (e.w / 2 + 0.5);
+    part(R, box(e.w + 1.2, h, 0.8), mat, cx, h / 2, cz, { ry: Math.atan2(dx, dz), receive: true, ol: 0.03 });
+  }
+}
 function buildAlley() {
   const D = AREA_DEF.alley, path = D.path;
-  const R = new THREE.Group(); S.root.add(R); D.root = R; D.obstacles = [];
+  const R = new THREE.Group(); S.root.add(R); D.root = R; D.obstacles = []; D.occluders = [];
   const bb = pathBounds(path);
   const g1 = new THREE.Mesh(box(bb.x1 - bb.x0 + 70, 0.2, bb.z1 - bb.z0 + 50), toon('#37324b', { map: alleyGroundTex }));
   g1.position.set((bb.x0 + bb.x1) / 2, -0.1, (bb.z0 + bb.z1) / 2); g1.receiveShadow = true; R.add(g1);
   alleyGroundTex.repeat.set(30, 40);
   const darkM = new THREE.MeshBasicMaterial({ color: '#000000' });
-  buildPathFloor(R, path, { mat: toon('#4c4664', { map: tileTexW }), darkMat: darkM, top: FLOOR.ALLEY, thick: 0.16, dark: (i) => i >= D.tunnelFrom });
+  const alleyM = toon('#4c4664', { map: tileTexW });
+  buildPathFloor(R, path, { mat: alleyM, darkMat: darkM, top: FLOOR.ALLEY, thick: 0.16, dark: (i) => i >= D.tunnelFrom });
+  for (const bp of D.branchPaths) buildPathFloor(R, bp, { mat: alleyM, top: FLOOR.ALLEY, thick: 0.16 });
+  buildDeadEnds(R, D, toon('#6a5a48', { map: plankTex }), 1.8);
   const rnd = seeded(7);
   // ビル（道に重ならない位置だけ。トンネルの壁より奥には置かない）
-  for (let i = 0; i < D.tunnelFrom; i++) {
-    const a = path[i], b = path[i + 1];
+  const segs = [];
+  for (let i = 0; i < D.tunnelFrom; i++) segs.push([path[i], path[i + 1]]);
+  for (const bp of D.branchPaths) for (let i = 0; i < bp.length - 1; i++) segs.push([bp[i], bp[i + 1]]);
+  for (const [a, b] of segs) {
     const len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
     for (let t = 0; t <= len; t += 3.4) for (const s of [-1, 1]) {
       const off = a.w / 2 + 2.6;
       const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
-      if (pathDistOf(path, null, x, z) < 1.9 || z < D.tunnelZ + 3) continue;
-      const h = 4 + rnd() * 6;
+      if (pathDistAll(D.paths, null, x, z) < 2.4 || z < D.tunnelZ + 3) continue;
+      const h = 3.5 + rnd() * 4;
       const m = new THREE.Mesh(box(3.2, h, 3.2), toon(0xffffff, { map: windowTex(Math.floor(rnd() * 1000)) }));
       m.position.set(x, h / 2, z); m.rotation.y = Math.atan2(dx, dz); m.castShadow = true; m.receiveShadow = true;
       m.add(new THREE.Mesh(m.geometry, outlineMat(0.04))); R.add(m);
+      D.occluders.push({ m, x, z, h });
     }
   }
   // 家の裏手（スタート地点）
@@ -1957,6 +2069,7 @@ function buildAlley() {
     for (let t = 4; t < len - 4; t += 7) {
       const s = (k % 2) ? 1 : -1, off = a.w / 2 - 0.6;
       const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
+      if (D.branchPaths.some((bp) => Math.hypot(bp[0].x - x, bp[0].z - z) < bp[0].w / 2 + 2.5)) { k++; continue; }
       const kind = kinds[k++ % kinds.length], y0 = FLOOR.ALLEY;
       if (kind === 'can') { part(R, cyl(0.42, 0.38, 1.0, 18), '#5f7a8a', x, y0 + 0.5, z); part(R, cyl(0.46, 0.46, 0.1, 18), '#4c6472', x, y0 + 1.05, z); }
       if (kind === 'crate') part(R, box(0.9, 0.9, 0.9), '#a07444', x, y0 + 0.45, z, { ry: 0.4 + t });
@@ -1969,16 +2082,10 @@ function buildAlley() {
       }
     }
   }
-  // 下水道の入口：レンガの壁にあいた真っ暗なトンネル
+  // 下水道の入口：アーチ形の穴があいた1枚のレンガ壁＋その奥の暗闇
   const tz = D.tunnelZ;
-  const brickM = toon('#6b4f42', { map: brickTex });
-  for (const s of [-1, 1]) part(R, box(16, 5.5, 1.6), brickM, s * (2.5 + 8 + 0.15), 2.75, tz - 0.8, { receive: true, ol: 0.03 });
-  part(R, box(5.6, 1.6, 1.6), brickM, 0, 4.7, tz - 0.8, { ol: 0.03 });
-  part(R, new THREE.TorusGeometry(2.7, 0.4, 10, 24, Math.PI), toon('#7a5a4a', { map: brickTex }), 0, 1.3, tz + 0.05, { ol: 0.03 });
-  for (const s of [-1, 1]) part(R, box(1.2, 6, 11), darkM, s * 3.1, 3, tz - 5.5, { ol: 0, shadow: false });
-  part(R, box(8, 6, 1), darkM, 0, 3, tz - 11, { ol: 0, shadow: false });
-  part(R, box(6.4, 0.4, 10), darkM, 0, 6.2, tz - 6, { ol: 0, shadow: false });
-  const sign = labelSprite('下水道', 'この先、真っ暗', '#9be37a'); sign.scale.multiplyScalar(0.7); sign.position.set(0, 6.4, tz + 0.6); R.add(sign);
+  archWall(R, { x: 0, z: tz, w: 36, h: 5.5, ow: path[D.tunnelFrom].w + 0.3, oh: 4.0, depth: 1.6, color: '#6b4f42', trim: '#8a6a58' });
+  const sign = labelSprite('下水道', 'この先、真っ暗', '#9be37a'); sign.scale.multiplyScalar(0.7); sign.position.set(0, 6.6, tz + 0.6); R.add(sign);
   return D;
 }
 
@@ -1991,6 +2098,8 @@ function buildSewer() {
   rippleTex.repeat.set(16, 30);
   const sewerM = toon('#6f7884', { map: stoneTexW }), edgeM = toon('#4a515c', { map: stoneTexW });
   buildPathFloor(R, path, { mat: sewerM, top: FLOOR.SEWER, thick: 0.7, edge: edgeM });
+  for (const bp of D.branchPaths) buildPathFloor(R, bp, { mat: sewerM, top: FLOOR.SEWER, thick: 0.7, edge: edgeM });
+  buildDeadEnds(R, D, toon('#55505e', { map: brickTex }), 1.5);
   // 闘技場（大ドブネズミのねぐら）：道と同じ素材・同じ高さ
   floorPiece(R, A.x, A.z, 0, A.r * 2, FLOOR.SEWER, 0.7, sewerM);
   floorPiece(R, A.x, A.z, 0, A.r * 2 + 0.4, FLOOR.EDGE, 0.7, edgeM);
@@ -1999,7 +2108,7 @@ function buildSewer() {
   for (let k = 0; k < 14; k++) {
     const a = k / 14 * Math.PI * 2;
     const x = A.x + Math.cos(a) * (A.r + 1.2), z = A.z + Math.sin(a) * (A.r + 1.2);
-    if (pathDistOf(path, null, x, z) < 1.2) continue;
+    if (pathDistAll(D.paths, null, x, z) < 1.2) continue;
     part(R, cyl(0.7, 0.8, 5 + (k % 3), 12), toon('#5b5360', { map: brickTex }), x, 2.3, z, { receive: true, ol: 0.03 });
   }
   const junk = [[-2.5, -7, '#a07444'], [2.8, -7.5, '#5f7a8a'], [0, -8.5, '#8a6236'], [-4.5, -4.5, '#6b6380'], [4.6, -4.8, '#a07444']];
@@ -2023,13 +2132,14 @@ function buildSewer() {
   S.animated.push((dt) => { const ty = S.bossLock ? 0 : -3; gate.position.y += (ty - gate.position.y) * Math.min(1, dt * 6); });
   // 壁とパイプ
   const rnd = seeded(41);
-  for (let i = 0; i < path.length - 1; i++) {
-    const a = path[i], b = path[i + 1];
+  const wsegs = [];
+  for (const P of D.paths) for (let i = 0; i < P.length - 1; i++) wsegs.push([P[i], P[i + 1]]);
+  for (const [a, b] of wsegs) {
     const len = Math.hypot(b.x - a.x, b.z - a.z), dx = (b.x - a.x) / len, dz = (b.z - a.z) / len;
     for (let t = 1.5; t <= len; t += 2.6) for (const s of [-1, 1]) {
       const off = a.w / 2 + 2.2 + rnd() * 0.8;
       const x = a.x + dx * t + dz * s * off, z = a.z + dz * t - dx * s * off;
-      if (pathDistOf(path, A, x, z) < 1.6 || z > path[0].z - 1 || Math.hypot(x - A.x, z - A.z) < A.r + 2) continue;
+      if (pathDistAll(D.paths, A, x, z) < 2.0 || z > path[0].z - 1 || Math.hypot(x - A.x, z - A.z) < A.r + 2) continue;
       const h = 1.3 + rnd() * 0.9;
       part(R, box(2.4, h, 2.4), toon('#55505e', { map: brickTex }), x, h / 2 - 0.35, z, { ry: Math.atan2(dx, dz), receive: true, ol: 0.03 });
       if (rnd() < 0.3) {
@@ -2040,14 +2150,8 @@ function buildSewer() {
       }
     }
   }
-  // スタート地点の後ろ：通ってきた真っ暗なトンネル
-  const darkM = new THREE.MeshBasicMaterial({ color: '#000000' });
-  const brickM = toon('#55505e', { map: brickTex });
-  const sz = path[0].z + 2.4;
-  // カメラが後ろから見下ろすので、壁は低くして視界をふさがない
-  for (const s of [-1, 1]) part(R, box(14, 2.2, 1.4), brickM, s * (2.4 + 7), 0.75, sz + 0.7, { receive: true, ol: 0.03 });
-  part(R, box(4.8, 0.5, 1.4), brickM, 0, 1.6, sz + 0.7, { ol: 0.03 });
-  part(R, box(4.8, 1.35, 6), darkM, 0, 0.68, sz + 3.6, { ol: 0, shadow: false });
+  // スタート地点の後ろ：通ってきた真っ暗なトンネル（カメラの視界をふさがない低い壁）
+  archWall(R, { x: 0, z: path[0].z + 2.4, w: 30, h: 2.6, ow: path[0].w + 0.3, oh: 2.45, depth: 1.4, color: '#55505e', trim: '#6b6676', facing: -1 });
   return D;
 }
 
@@ -2066,6 +2170,14 @@ function spawnArea(D) {
       makeRat(px, pz);
     }
   }
+  // 分かれ道の奥：ごほうび（ニボシの山、ときどきカリカリ）と見張り
+  D.branches.forEach((b, bi) => {
+    const bp = D.branchPaths[bi], e = bp[bp.length - 1], q = bp[bp.length - 2];
+    const L2 = Math.hypot(e.x - q.x, e.z - q.z), dx = (e.x - q.x) / L2, dz = (e.z - q.z) / L2;
+    for (let k = 0; k < 3; k++) dropFish(e.x - dx * 0.6 + dz * (k - 1) * 0.8, e.z - dz * 0.6 - dx * (k - 1) * 0.8, 10, true);
+    if (bi % 2 === 1) dropKari(e.x - dx * 1.8, e.z - dz * 1.8);
+    for (let k = 0; k < b.guard; k++) makeRat(e.x - dx * (2.5 + k), e.z - dz * (2.5 + k) + (k ? 0.8 : -0.8));
+  });
   const end = D.tunnelFrom ? pathLength(D.path.slice(0, D.tunnelFrom + 1)) - 4 : L - 4;
   let side = 1;
   for (let d = 8; d < end; d += 9) {
@@ -2080,7 +2192,7 @@ function loadArea(key) {
   const D = AREA_DEF[key];
   if (!D.root) (key === 'alley' ? buildAlley : buildSewer)();
   for (const k in AREA_DEF) if (AREA_DEF[k].root) AREA_DEF[k].root.visible = (k === key);
-  S.area = key; PATH = D.path; ARENA = D.arena; S.obstacles = D.obstacles;
+  S.area = key; PATH = D.path; PATHS = D.paths; ARENA = D.arena; S.obstacles = D.obstacles;
   S.bossStarted = false; S.bossLock = false;
   const st = D.path[0];
   ps.x = st.x; ps.z = st.z - (key === 'alley' ? 2 : 3); ps.yaw = Math.PI; ps.kx = ps.kz = 0; ps.mode = 'idle'; ps.actionT = 0;
@@ -2199,11 +2311,11 @@ function separateEnemies() {
     if (d < m) { const k = (m - d) / 2; entMove(a, -dx / d * k, -dz / d * k); entMove(b, dx / d * k, dz / d * k); }
   }
 }
-function hitEnemy(e, dmg, crit, dirx, dirz) {
+function hitEnemy(e, dmg, crit, dirx, dirz, kb) {
   e.hp -= dmg; e.flash = 1;
   popNum(e.x, e.boss ? 3.2 : 1.3, e.z, crit ? dmg + '!' : String(dmg), crit ? 'crit' : 'hit');
   if (!e.boss) {
-    e.kbx = dirx * 7; e.kbz = dirz * 7;
+    e.kbx = dirx * (kb || 7); e.kbz = dirz * (kb || 7);
     if (e.state !== 'dead') { e.state = 'hurt'; e.t = 0.28; }
     e.bars[0].visible = e.bars[1].visible = true;
   }
@@ -2231,6 +2343,14 @@ function makeFish() {
   part(f, new THREE.SphereGeometry(0.022, 8, 6), basic('#1a1226'), 0.14, 0.02, 0.05, { ol: 0 });
   return f;
 }
+function dropKari(x, z) {
+  const g = new THREE.Group(); S.ents.add(g);
+  part(g, box(0.42, 0.5, 0.22), '#d9553b', 0, 0, 0, { ol: 0.015 });
+  part(g, box(0.3, 0.16, 0.24), '#f2ead8', 0, 0.04, 0, { ol: 0 });
+  part(g, ellip(0.06, 0.04, 0.02, 10, 8), '#8a5a34', 0.0, 0.04, 0.125, { ol: 0 });
+  const d = { g, x, z, y: 0.75, vx: 0, vz: 0, vy: 0, t: 0, val: 0, still: true, off: Math.random() * 6, kind: 'kari' };
+  g.position.set(x, d.y, z); S.drops.push(d);
+}
 function dropFish(x, z, val, still) {
   const g = makeFish(); S.ents.add(g);
   const a = Math.random() * Math.PI * 2, sp = still ? 0 : 1.5 + Math.random() * 2;
@@ -2251,8 +2371,8 @@ function updateDrops(dt) {
     const dx = ps.x - d.x, dz = ps.z - d.z, dist = Math.hypot(dx, dz);
     if (d.t > 0.45 && dist < 2.6 && !S.over) { d.x += dx / dist * 9 * dt; d.z += dz / dist * 9 * dt; }
     if (d.t > 0.45 && dist < 0.7 && !S.defeat) {
-      state.nibosi += d.val; S.stats.nibosi += d.val; save(); refreshHud();
-      popNum(ps.x, 1.6, ps.z, '+' + d.val, 'fish');
+      if (d.kind === 'kari') { state.items.kari = (state.items.kari || 0) + 1; save(); refreshItemBtn(); popNum(ps.x, 1.8, ps.z, 'カリカリ +1', 'heal'); }
+      else { state.nibosi += d.val; S.stats.nibosi += d.val; save(); refreshHud(); popNum(ps.x, 1.6, ps.z, '+' + d.val, 'fish'); }
       S.ents.remove(d.g); S.drops.splice(i, 1); continue;
     }
     d.g.position.set(d.x, d.y, d.z);
@@ -2499,10 +2619,218 @@ function bossDefeated() {
   }, 1800);
 }
 
+/* ---------- わざ（通常攻撃・B攻撃・C攻撃） ---------- */
+// ダメージ = 攻撃力 × わざいりょく ÷ 40 × (0.9〜1.1)。通常攻撃のいりょくは40なので「攻撃力そのまま」が基準。
+// クールタイム = 2秒 + 合計いりょく÷25 + 性能ボーナス（移動・範囲・無敵など）。3〜10秒におさめ、0.5秒きざみ。
+const NORMAL_POWER = 40;
+const SKILLS = {
+  noneko: [
+    { id: 'flurry', name: 'ノラ連撃', type: 'flurry', power: 24, hits: 5, util: 0, desc: '正面をすばやく5回ひっかく。1体の敵に強い。' },
+    { id: 'pounce', name: 'とびかかり', type: 'dash', power: 90, hits: 1, util: 1, desc: '前に大きく飛びかかり、通り道の敵を攻撃。飛びかかり中は無敵。' },
+    { id: 'spin', name: '回転ネコパンチ', type: 'spin', power: 70, hits: 1, util: 1.5, desc: 'その場で回転し、周りの敵をまとめてふき飛ばす。' },
+    { id: 'iji', name: 'ノラの意地', type: 'wave', power: 160, hits: 1, util: 1.5, desc: '力をためて地面をたたき、前方に大きな衝撃波を放つ。' }
+  ],
+  alien: [
+    { id: 'beam', name: 'ネコビーム', type: 'projectile', power: 80, hits: 1, util: 0.5, desc: 'まっすぐ飛ぶビームで、最初に当たった敵を攻撃。' },
+    { id: 'ufo', name: 'UFOキャッチ', type: 'aoe', power: 60, hits: 1, util: 2, desc: '近くの敵の足元に光を落とし、まわりの敵をまとめて攻撃。' },
+    { id: 'warp', name: 'テレポート', type: 'blink', power: 0, hits: 0, util: 4, desc: '前方に瞬間移動する。移動中は無敵。' },
+    { id: 'meteor', name: 'メテオ落とし', type: 'aoe', power: 170, hits: 1, util: 1.5, desc: '少し遅れて大きな隕石が落ちる。広い範囲に大ダメージ。' }
+  ],
+  bake: [
+    { id: 'hitodama', name: 'ひとだま', type: 'homing', power: 30, hits: 3, util: 1, desc: '敵を追いかける火の玉を3つ放つ。' },
+    { id: 'henge', name: '化け術', type: 'stealth', power: 0, hits: 0, util: 4.5, desc: '2.5秒のあいだ姿を消し、攻撃を受けなくなる。' },
+    { id: 'futamata', name: '二又しっぽ打ち', type: 'spin', power: 75, hits: 1, util: 1, desc: '二本のしっぽで周りをなぎはらう。' },
+    { id: 'hyakki', name: '百鬼の呪い', type: 'aoe', power: 150, hits: 1, util: 2, desc: '近くの敵に呪いの円を落とし、広く大ダメージ。' }
+  ]
+};
+const CATS = { noneko: { name: 'ノネコ', role: 'アタッカー' }, alien: { name: 'エイリアンネコ', role: 'シューター' }, bake: { name: 'バケネコ', role: 'トリックスター' } };
+const skillCD = (sk) => Math.round(THREE.MathUtils.clamp(2 + sk.power * sk.hits / 25 + sk.util, 3, 10) * 2) / 2;
+const skillById = (cat, id) => SKILLS[cat].find((k) => k.id === id);
+state.loadout = Object.assign({ noneko: { B: 'pounce', C: 'spin' }, alien: { B: 'beam', C: 'ufo' }, bake: { B: 'hitodama', C: 'futamata' } }, state.loadout || {});
+const curCat = () => 'noneko';
+function slotSkill(slot) { return skillById(curCat(), state.loadout[curCat()][slot]); }
+function calcDmg(power, e) {
+  const st = stats(state.lv);
+  const crit = Math.random() < 0.12;
+  const dmg = Math.max(1, Math.round(st.atk * power / 40 * (0.9 + Math.random() * 0.2) * (crit ? 1.6 : 1) * (e.boss && e.state === 'stun' ? 1.3 : 1)));
+  return { dmg, crit };
+}
+function liveTargets() {
+  const t = S.enemies.filter((e) => e.state !== 'dead');
+  if (S.boss && S.bossStarted && S.boss.state !== 'dead') t.push(S.boss);
+  return t;
+}
+function nearestTarget(maxD) {
+  let best = null, bd = maxD;
+  for (const e of liveTargets()) { const d = Math.hypot(e.x - ps.x, e.z - ps.z) - (e.boss ? e.r : 0); if (d < bd) { bd = d; best = e; } }
+  return best;
+}
+// 範囲攻撃の当たり判定。shape: 'cone'（前方の扇形）/ 'circle'（周り）
+function hitArea(o) {
+  const fx = Math.sin(ps.yaw), fz = Math.cos(ps.yaw);
+  const cx = o.x != null ? o.x : ps.x, cz = o.z != null ? o.z : ps.z;
+  let n = 0;
+  for (const e of liveTargets()) {
+    if (o.once && o.once.has(e)) continue;
+    const dx = e.x - cx, dz = e.z - cz, d = Math.hypot(dx, dz) || 0.001;
+    if (d > o.range + e.r) continue;
+    if (o.shape === 'cone' && d > e.r + 0.5 && (dx * fx + dz * fz) / d < Math.cos(o.angle)) continue;
+    const r = calcDmg(o.power, e);
+    hitEnemy(e, r.dmg, r.crit, dx / d, dz / d, o.kb);
+    if (o.once) o.once.add(e);
+    n++;
+  }
+  return n;
+}
+// 演出：床の上に広がる輪（床・攻撃予告・しみより高い 0.17 に置く）
+function ringFx(x, z, r, color, dur) {
+  const m = new THREE.Mesh(new THREE.RingGeometry(0.8, 1, 48), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.85, depthWrite: false, side: THREE.DoubleSide }));
+  m.rotation.x = -Math.PI / 2; m.position.set(x, 0.17, z); S.ents.add(m);
+  S.fx.push({ m, t: 0, dur: dur || 0.4, r });
+}
+function arcFx(len, color) {
+  const g = new THREE.Group(); g.position.set(ps.x, 0.9, ps.z); g.rotation.y = ps.yaw; S.ents.add(g);
+  const m = new THREE.Mesh(new THREE.RingGeometry(len - 0.5, len, 40, 1, Math.PI * 0.15, Math.PI * 0.7), new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.9, depthWrite: false, side: THREE.DoubleSide, blending: THREE.AdditiveBlending }));
+  m.rotation.x = -Math.PI / 2; m.rotation.z = -Math.PI / 2; g.add(m);
+  S.fx.push({ m: g, mat: m.material, t: 0, dur: 0.45, grow: true });
+}
+function updateFx(dt) {
+  for (let i = S.fx.length - 1; i >= 0; i--) {
+    const f = S.fx[i]; f.t += dt;
+    const k = f.t / f.dur;
+    if (k >= 1) { S.ents.remove(f.m); S.fx.splice(i, 1); continue; }
+    if (f.r) f.m.scale.setScalar(0.3 + k * f.r);
+    if (f.grow) f.m.scale.setScalar(0.6 + k * 0.6);
+    (f.mat || f.m.material).opacity = 0.85 * (1 - k);
+  }
+  for (let i = S.projs.length - 1; i >= 0; i--) {
+    const p = S.projs[i]; p.t += dt;
+    if (p.home) { const tg = nearestTarget(8); if (tg) { const a = Math.atan2(tg.x - p.x, tg.z - p.z); let d = a - p.a; d = Math.atan2(Math.sin(d), Math.cos(d)); p.a += d * Math.min(1, dt * 5); } }
+    p.x += Math.sin(p.a) * p.sp * dt; p.z += Math.cos(p.a) * p.sp * dt;
+    p.m.position.set(p.x, 1.0, p.z);
+    let hit = false;
+    for (const e of liveTargets()) {
+      if (Math.hypot(e.x - p.x, e.z - p.z) < e.r + 0.35) { const r = calcDmg(p.power, e); hitEnemy(e, r.dmg, r.crit, Math.sin(p.a), Math.cos(p.a), 4); hit = true; break; }
+    }
+    if (hit || p.t > p.life || !stageWalkable(p.x, p.z, 0)) { S.ents.remove(p.m); S.projs.splice(i, 1); }
+  }
+  for (let i = S.blasts.length - 1; i >= 0; i--) {
+    const b = S.blasts[i]; b.t += dt;
+    b.T.set(Math.min(1, b.t / b.delay));
+    if (b.t >= b.delay) {
+      b.T.remove(); S.teles.splice(S.teles.indexOf(b.T), 1);
+      hitArea({ shape: 'circle', range: b.r, power: b.power, x: b.x, z: b.z, kb: 6 });
+      ringFx(b.x, b.z, b.r, b.color, 0.45); S.shake = Math.max(S.shake, 0.2);
+      S.blasts.splice(i, 1);
+    }
+  }
+}
+function useSkill(slot) {
+  if (mode !== 'stage' || S.over || dlg.active || cine.active || S.loading || !$('#panel').hidden) return;
+  if (ps.skill || ps.cd[slot] > 0) return;
+  const sk = slotSkill(slot);
+  const tg = nearestTarget(sk.type === 'dash' ? 6 : 4);
+  if (tg) ps.yaw = Math.atan2(tg.x - ps.x, tg.z - ps.z);
+  ps.cd[slot] = ps.cdMax[slot] = skillCD(sk);
+  ps.skill = { sk, t: 0, once: new Set(), step: 0 };
+  ps.mode = 'idle'; ps.queued = false;
+  popNum(ps.x, 2.3, ps.z, sk.name, 'skill');
+}
+function updateSkill(dt) {
+  const k = ps.skill; if (!k) return;
+  k.t += dt;
+  const sk = k.sk, fx = Math.sin(ps.yaw), fz = Math.cos(ps.yaw);
+  let done = false;
+  switch (sk.type) {
+    case 'flurry': {
+      const times = [0.05, 0.2, 0.35, 0.5, 0.65];
+      while (k.step < times.length && k.t >= times[k.step]) {
+        ps.mode = 'attack'; ps.actionT = 0.2; ps.hitDone = true;
+        hitArea({ shape: 'cone', range: 1.9, angle: 1.0, power: sk.power, kb: 2 });
+        arcFx(1.5, '#fff3c4');
+        tryMove(ps, fx * 0.18, fz * 0.18);
+        k.step++;
+      }
+      done = k.t > 0.85;
+      break;
+    }
+    case 'dash':
+      ps.invul = 0.1;
+      if (k.t < 0.36) { tryMove(ps, fx * 15 * dt, fz * 15 * dt); ps.run = 1; hitArea({ shape: 'circle', range: 1.0, power: sk.power, once: k.once, kb: 8 }); if (Math.random() < 0.6) spawnDust(ps.x - fx * 0.4, ps.z - fz * 0.4); }
+      if (k.t >= 0.36 && !k.step) { k.step = 1; ps.mode = 'attack'; ps.actionT = 0.25; hitArea({ shape: 'cone', range: 1.6, angle: 1.0, power: sk.power * 0.5, once: k.once, kb: 6 }); arcFx(1.6, '#ffd36b'); }
+      done = k.t > 0.55;
+      break;
+    case 'spin':
+      ps.spinA = Math.min(1, k.t / 0.45) * Math.PI * 4;
+      if (k.t >= 0.12 && !k.step) { k.step = 1; hitArea({ shape: 'circle', range: 2.6, power: sk.power, kb: 10 }); ringFx(ps.x, ps.z, 2.8, '#ffd36b', 0.4); S.shake = Math.max(S.shake, 0.12); }
+      done = k.t > 0.5;
+      break;
+    case 'wave':
+      if (k.step === 0) { k.step = 1; ps.mode = 'attack'; ps.actionT = 0; ps.hitDone = true; }
+      if (k.t < 0.3) ps.actionT = Math.min(ps.actionT, 0.15);
+      if (k.t >= 0.32 && k.step === 1) {
+        k.step = 2;
+        hitArea({ shape: 'cone', range: 3.8, angle: 1.15, power: sk.power, kb: 12 });
+        arcFx(3.2, '#ff9a4d'); ringFx(ps.x + fx * 1.6, ps.z + fz * 1.6, 3.2, '#ff9a4d', 0.5); S.shake = Math.max(S.shake, 0.3);
+        for (let i = 0; i < 6; i++) spawnDust(ps.x + fx * (1 + i * 0.5) + (Math.random() - 0.5), ps.z + fz * (1 + i * 0.5) + (Math.random() - 0.5));
+      }
+      done = k.t > 0.75;
+      break;
+    case 'projectile':
+      if (!k.step) { k.step = 1; ps.mode = 'attack'; ps.actionT = 0.2; shoot(ps.yaw, sk.power, 16, 1.0, '#7dffb0', false); }
+      done = k.t > 0.35; break;
+    case 'homing':
+      while (k.step < 3 && k.t >= k.step * 0.12) { shoot(ps.yaw + (k.step - 1) * 0.5, sk.power, 9, 2.0, '#7fb8ff', true); k.step++; }
+      done = k.t > 0.45; break;
+    case 'aoe':
+      if (!k.step) {
+        k.step = 1; ps.mode = 'attack'; ps.actionT = 0.2;
+        const tg = nearestTarget(9);
+        const x = tg ? tg.x : ps.x + fx * 4, z = tg ? tg.z : ps.z + fz * 4;
+        const big = sk.power > 120, r = big ? 3.2 : 2.4;
+        S.blasts.push({ x, z, r, power: sk.power, delay: big ? 0.8 : 0.45, t: 0, color: big ? '#ff9a4d' : '#7dffb0', T: teleCircle(x, z, r) });
+      }
+      done = k.t > 0.35; break;
+    case 'blink':
+      if (!k.step) { k.step = 1; for (let i = 0; i < 10; i++) tryMove(ps, fx * 0.5, fz * 0.5); ringFx(ps.x, ps.z, 1.5, '#7dffb0', 0.35); ps.invul = 0.4; }
+      done = k.t > 0.2; break;
+    case 'stealth':
+      if (!k.step) { k.step = 1; ps.invul = 2.5; }
+      done = true; break;
+  }
+  if (done) { ps.skill = null; ps.spinA = 0; }
+}
+function shoot(a, power, sp, life, color, home) {
+  const m = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), new THREE.MeshBasicMaterial({ color }));
+  S.ents.add(m);
+  S.projs.push({ m, x: ps.x + Math.sin(a) * 0.6, z: ps.z + Math.cos(a) * 0.6, a, sp, life, power, home, t: 0 });
+}
+// ボタンのクールタイム表示
+const cdUI = { B: -1, C: -1 };
+function refreshSkillBtns() {
+  for (const slot of ['B', 'C']) {
+    const sk = slotSkill(slot);
+    const b = $('#btn' + slot);
+    b.querySelector('.sn').textContent = sk.name;
+  }
+}
+function updateSkillBtns() {
+  for (const slot of ['B', 'C']) {
+    const v = Math.ceil(ps.cd[slot] * 10) / 10;
+    if (v === cdUI[slot]) continue;
+    cdUI[slot] = v;
+    const b = $('#btn' + slot);
+    const ratio = ps.cdMax[slot] ? ps.cd[slot] / ps.cdMax[slot] : 0;
+    b.style.setProperty('--p', (ratio * 100).toFixed(1) + '%');
+    b.classList.toggle('cooling', ps.cd[slot] > 0);
+    b.querySelector('.cdn').textContent = ps.cd[slot] > 0 ? Math.ceil(ps.cd[slot]) : '';
+  }
+}
+
 /* ---------- ネコ側の攻撃・ダメージ ---------- */
 const ATK_SPD = 1.7;
 function playerAttack() {
-  if (mode !== 'stage' || S.over || dlg.active || !$('#panel').hidden) return;
+  if (mode !== 'stage' || S.over || dlg.active || !$('#panel').hidden || ps.skill) return;
   if (ps.mode === 'attack' && ps.actionT / 0.55 < 0.62) { ps.queued = true; return; }
   let best = null, bd = 3.4;
   const targets = S.enemies.filter((e) => e.state !== 'dead');
@@ -2513,22 +2841,10 @@ function playerAttack() {
   ps.combo = (ps.combo || 0) + 1;
 }
 function resolvePlayerHit() {
-  const st = stats(state.lv);
-  const fx = Math.sin(ps.yaw), fz = Math.cos(ps.yaw);
-  const targets = S.enemies.filter((e) => e.state !== 'dead');
-  if (S.boss && S.bossStarted && S.boss.state !== 'dead') targets.push(S.boss);
-  for (const e of targets) {
-    const dx = e.x - ps.x, dz = e.z - ps.z, d = Math.hypot(dx, dz) || 0.001;
-    if (d > 1.55 + e.r) continue;
-    const dot = (dx * fx + dz * fz) / d;
-    if (dot < 0.2 && d > e.r + 0.5) continue;
-    const crit = Math.random() < 0.12;
-    const dmg = Math.round(st.atk * (0.9 + Math.random() * 0.2) * (crit ? 1.6 : 1) * (e.boss && e.state === 'stun' ? 1.3 : 1));
-    hitEnemy(e, dmg, crit, dx / d, dz / d);
-  }
+  hitArea({ shape: 'cone', range: 1.55, angle: Math.acos(0.2), power: NORMAL_POWER });
 }
 function damagePlayer(raw, sx, sz, kb) {
-  if (S.inv > 0 || S.over) return;
+  if (S.inv > 0 || ps.invul > 0 || S.over) return;
   const st = stats(state.lv);
   const dmg = Math.max(1, Math.round(raw - st.def * 0.4));
   S.hp = Math.max(0, S.hp - dmg); S.inv = 0.9;
@@ -2654,7 +2970,7 @@ function clearEntities() {
   if (!S.ents) return;
   clearTeles();
   while (S.ents.children.length) S.ents.remove(S.ents.children[0]);
-  S.enemies = []; S.drops = []; S.splats = []; S.boss = null;
+  S.enemies = []; S.drops = []; S.splats = []; S.boss = null; S.fx = []; S.projs = []; S.blasts = [];
   clearNums();
 }
 function resetStage(areaKey) {
@@ -2665,9 +2981,10 @@ function resetStage(areaKey) {
   if (!areaKey) { S.stats = { kills: 0, nibosi: 0 }; S.said = {}; }
   player.root.rotation.x = 0; player.root.visible = true;
   cam.yaw = 0; cam.elev = CAM_ELEV;
+  ps.cd = { B: 0, C: 0 }; ps.skill = null; ps.spinA = 0; ps.invul = 0; cdUI.B = cdUI.C = -1;
   loadArea(areaKey || 'alley');
   $('#dark').style.opacity = '0';
-  updateHpBar(); refreshItemBtn();
+  updateHpBar(); refreshItemBtn(); refreshSkillBtns();
 }
 function exitStage() {
   closePanel();
@@ -2701,6 +3018,8 @@ function updateStage(dt, paused) {
   if (S.darkT > 0) { S.darkT = Math.max(0, S.darkT - dt * 0.8); dark = Math.max(dark, S.darkT); }
   $('#dark').style.opacity = S.loading ? '1' : String(dark);
   if (S.lamp) S.lamp.position.set(ps.x, 2.6, ps.z + 0.5);
+  fadeOccluders(D);
+  if (!paused) updateFx(dt);
   for (let i = S.splats.length - 1; i >= 0; i--) {
     const s = S.splats[i]; s.t += dt;
     s.m.material.opacity = 0.7 * Math.max(0, 1 - s.t / 2.5);
@@ -2716,18 +3035,41 @@ function updateStage(dt, paused) {
   }
 }
 
+// カメラとネコの間にあるビルを半透明にする
+function fadeOccluders(D) {
+  if (!D.occluders) return;
+  const px = ps.x, pz = ps.z, cx = camera.position.x, cz = camera.position.z, cy = camera.position.y;
+  const vx = cx - px, vz = cz - pz, L = Math.hypot(vx, vz) || 1;
+  for (const o of D.occluders) {
+    const wx = o.x - px, wz = o.z - pz;
+    const t = (wx * vx + wz * vz) / L;
+    const perp = Math.abs(wx * vz - wz * vx) / L;
+    const lineY = 0.8 + (cy - 0.8) * Math.max(0, t - 1.6) / L;
+    const block = t > 0.5 && t < L + 1 && perp < 3.4 && o.h > lineY;
+    const target = block ? 0.28 : 1;
+    const mat = o.m.material;
+    if (Math.abs(mat.opacity - target) > 0.01) {
+      mat.transparent = true;
+      mat.opacity += (target - mat.opacity) * 0.25;
+      if (mat.opacity > 0.98) { mat.opacity = 1; mat.transparent = false; }
+      mat.depthWrite = mat.opacity > 0.9;
+      o.m.children[0].visible = mat.opacity > 0.9;
+      mat.needsUpdate = true;
+    }
+  }
+}
 /* ---------- ミニマップ（ステージ） ---------- */
 function drawStageMap() {
   const W = mm.width;
   mctx.clearRect(0, 0, W, W);
-  const bb = pathBounds(PATH, ARENA);
+  const bb = pathBounds([].concat(...PATHS), ARENA);
   const s = (W - 24) / Math.max(bb.x1 - bb.x0 + 8, bb.z1 - bb.z0 + 8);
   const cx = W / 2 - (bb.x0 + bb.x1) / 2 * s, cz = W / 2 - (bb.z0 + bb.z1) / 2 * s;
   const X = (x) => cx + x * s, Z = (z) => cz + z * s;
   const sewer = S.area === 'sewer';
   mctx.lineCap = 'round'; mctx.lineJoin = 'round';
   mctx.strokeStyle = sewer ? '#6f7884' : '#7a6fa0'; mctx.lineWidth = Math.max(5, PATH[1].w * s);
-  mctx.beginPath(); PATH.forEach((p, i) => (i ? mctx.lineTo(X(p.x), Z(p.z)) : mctx.moveTo(X(p.x), Z(p.z)))); mctx.stroke();
+  for (const P of PATHS) { mctx.beginPath(); P.forEach((p, i) => (i ? mctx.lineTo(X(p.x), Z(p.z)) : mctx.moveTo(X(p.x), Z(p.z)))); mctx.stroke(); }
   if (!sewer) {
     const D = AREA_DEF.alley, t = D.path[D.tunnelFrom], e = D.path[D.path.length - 1];
     mctx.strokeStyle = '#000'; mctx.beginPath(); mctx.moveTo(X(t.x), Z(t.z)); mctx.lineTo(X(e.x), Z(e.z)); mctx.stroke();
@@ -2925,9 +3267,10 @@ function step() {
   // 画面の上下左右 → カメラの向きに合わせたワールド方向
   const cy = Math.cos(cam.yaw), sy = Math.sin(cam.yaw);
   const wx = mx * cy + mz * sy, wz = -mx * sy + mz * cy;
-  const attacking = stage && ps.mode === 'attack';
+  const attacking = stage && (ps.mode === 'attack' || !!ps.skill);
+  if (stage && !inUI) { ps.cd.B = Math.max(0, ps.cd.B - dt); ps.cd.C = Math.max(0, ps.cd.C - dt); ps.invul = Math.max(0, ps.invul - dt); updateSkill(dt); }
   let turnRate = 0;
-  if (moving) {
+  if (moving && !(stage && ps.skill)) {
     let speed = running ? 8.4 : 4.4 * Math.max(0.35, Math.min(1, mag / 0.82));
     if (attacking) speed *= 0.3;
     const len = Math.hypot(wx, wz) || 1;
@@ -2979,7 +3322,8 @@ function step() {
   if (viewer.on) {
     if (viewer.spin && !viewer.pts.size) viewer.yaw += dt * 0.6;
     player.root.rotation.y = viewer.yaw;
-  } else player.root.rotation.y = ps.yaw;
+  } else player.root.rotation.y = ps.yaw + (ps.spinA || 0);
+  if (stage) updateSkillBtns();
   animateCat(player, dt, { walk: ps.walk, run: ps.run, turn: viewer.on ? 0 : ps.turn, mode: ps.mode, actionT: Math.max(0, ps.actionT) });
 
   if (stage) {
@@ -3047,7 +3391,7 @@ function start() {
     $('#loading').classList.add('done');
     banner('ねこだまり基地', '路地裏にあるノネコたちの隠れ家', '#ffb547', 'HOME');
     requestAnimationFrame(step);
-    window.__nk = { ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goSewer, get ARENA() { return ARENA; } };
+    window.__nk = { useSkill, ps, openPanel, ROOMS, enterStage, departMovie, S, cam, nextLine, dlg, cine, endCine, AREA_DEF, goSewer, get ARENA() { return ARENA; } };
   } catch (err) {
     console.error(err);
     $('#loadMsg').className = 'err';
