@@ -419,7 +419,51 @@ body.in-screen #hud, body.in-screen #banner { display: none; }
 .mhead b { font-family: var(--display); font-weight: 400; font-size: 20px; color: var(--accent); }
 .mtrack { position: relative; flex: 1; min-height: 0; margin-top: 10px; overflow: auto; overscroll-behavior: contain; }
 .mcanvas { position: relative; }
-#scr[data-kind="mission"] .scr-r { display: flex; flex-direction: column; }
+#scr[data-kind="mission"] .scr-r { display: flex; flex-direction: column; padding: 10px; overflow: hidden; }
+.mapgrid { flex: 1; min-height: 0; display: flex; gap: 12px; }
+.mapview { position: relative; height: 100%; aspect-ratio: 1; max-width: 64%; flex: none; border: 4px solid var(--line); border-radius: 14px; overflow: hidden; background: #f6e3a1; box-shadow: 0 4px 0 var(--line); }
+.mapview img { display: block; width: 100%; height: 100%; user-select: none; -webkit-user-drag: none; }
+.mapview .route { position: absolute; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+.mapview .route polyline { fill: none; stroke: #ff6fb0; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; stroke-dasharray: 2.2 1.6; opacity: .9; }
+.mapview.sealed img { filter: grayscale(.8) brightness(.55); }
+.seal { position: absolute; inset: 0; display: grid; place-content: center; text-align: center; gap: 6px; padding: 16px; color: var(--ink); }
+.seal b { font-family: var(--display); font-weight: 400; font-size: 20px; text-shadow: 0 2px 0 var(--line); }
+.seal span { font-size: 13px; font-weight: 800; text-shadow: 0 1px 0 var(--line); }
+.pin { position: absolute; width: 0; height: 0; padding: 0; border: 0; background: none; cursor: pointer; }
+.pinhead { position: absolute; left: -17px; top: -44px; width: 34px; height: 34px; border-radius: 50% 50% 50% 0; transform: rotate(-45deg);
+  background: var(--ember); border: 3px solid var(--line); box-shadow: 2px 3px 0 rgba(13,10,26,.5); display: grid; place-items: center; transition: transform .15s; }
+.pinhead b { transform: rotate(45deg); font-family: var(--display); font-weight: 400; font-size: 15px; color: #fff; text-shadow: 0 1px 0 var(--line); }
+.pin.mini .pinhead { background: var(--fish); width: 28px; height: 28px; left: -14px; top: -37px; }
+.pin.mini .pinhead b { font-size: 12px; color: var(--line); text-shadow: none; }
+.pin.done .pinhead { background: var(--leaf); }
+.pin.done .pinhead b { color: var(--line); text-shadow: none; }
+.pin.locked .pinhead { background: #6a6280; }
+.pin.locked { cursor: not-allowed; }
+.pin.new .pinhead { animation: pinbob 1.2s ease-in-out infinite; }
+.pin:not(.locked):hover .pinhead, .pin:focus-visible .pinhead { transform: rotate(-45deg) scale(1.15); }
+.pinnew { position: absolute; left: 10px; top: -54px; font-size: 10px; font-weight: 800; color: #fff; background: var(--ember); border: 2px solid var(--line); border-radius: 999px; padding: 0 6px; }
+@keyframes pinbob { 50% { translate: 0 -5px; } }
+@media (prefers-reduced-motion: reduce) { .pin.new .pinhead { animation: none; } }
+.mapside { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 6px; min-height: 0; }
+.mapnav { display: flex; align-items: center; gap: 6px; }
+.mapnav .nb { width: 40px; height: 40px; padding: 0; flex: none; }
+.mapname { flex: 1; min-width: 0; text-align: center; line-height: 1.2; }
+.mapname small { display: block; font-size: 11px; font-weight: 800; color: var(--muted); }
+.mapname b { font-family: var(--display); font-weight: 400; font-size: 19px; color: var(--accent); }
+.mapsub { margin: 0; font-size: 12px; color: var(--muted); text-align: center; }
+.mlist { flex: 1; min-height: 0; overflow-y: auto; display: grid; gap: 6px; align-content: start; }
+.mrow { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: 8px; align-items: center; width: 100%; text-align: left; padding: 7px 9px;
+  background: var(--panel-2); border: 2px solid var(--line); border-radius: 12px; color: var(--ink); font-family: var(--body); cursor: pointer; }
+.mrow:not(:disabled):hover { border-color: var(--accent); }
+.mrow.locked { opacity: .55; cursor: not-allowed; }
+.mtag { font-family: var(--display); font-weight: 400; font-size: 12px; padding: 3px 8px; border-radius: 8px; border: 2px solid var(--line); background: var(--ember); color: #fff; white-space: nowrap; }
+.mtag.mini { background: var(--fish); color: var(--line); }
+.mtx b { display: block; font-size: 13.5px; }
+.mtx small { display: block; font-size: 11px; color: var(--muted); }
+.mst i { font-style: normal; font-size: 11px; font-weight: 800; padding: 2px 7px; border-radius: 999px; border: 2px solid var(--line); background: var(--panel); color: var(--muted); white-space: nowrap; }
+.mst i.ok { background: var(--leaf); color: var(--line); }
+.mst i.nw { background: var(--ember); color: #fff; }
+@media (max-width: 640px) and (orientation: portrait) { .mapgrid { flex-direction: column; } .mapview { height: auto; width: 100%; max-width: 100%; } }
 .mroad { position: absolute; background: #ff8fc8; border: 3px solid var(--line); border-radius: 8px; }
 .mroad.h { height: 12px; }
 .mroad.v { width: 12px; background: #8fd3ec; }
@@ -1941,35 +1985,169 @@ const MISSIONS = [
   { id: 'm2', type: 'main', ch: 2, title: '？？？', goal: '？？？', place: '？？？', rank: '-', time: '-', reward: () => '-', rec: 6, play: false,
     desc: '下水道のさらに奥から聞こえた不気味な鳴き声。その正体とは…', open: () => false, done: () => false }
 ];
+/* ---------- 町マップ（出撃ゲート） ---------- */
+// 上から見た四角い町の地図。目的地にピンを立て、ストーリーの順に道すじ（ピンクの線）でつなぐ。
+const TOWN_PAL = {
+  day: { road: '#f6e3a1', block: '#ead08a', edge: '#c9a75a', roofs: ['#e46a5a', '#5a8fd0', '#f2f2ea', '#6fbf73', '#f0a84a', '#b07ad0'], park: '#8fcf6a', tree: '#5aa846', forest: '#3f8a46', forestDark: '#2f6a38', water: '#6ec6ea', waterDark: '#4aa6d0', label: '#1d1834' },
+  night: { road: '#d9c48a', block: '#c9ad6a', edge: '#a8884a', roofs: ['#d05a4a', '#4a7ac0', '#e2e2da', '#5aaa60', '#e0983a', '#9a6ac0'], park: '#7abf5a', tree: '#4a9838', forest: '#357a3c', forestDark: '#28602f', water: '#4aa6d8', waterDark: '#3086b8', label: '#1d1834' },
+  under: { road: '#6a5a7a', block: '#3a2e48', edge: '#24182e', roofs: ['#8a6aa8', '#6a8aa8', '#a88a6a', '#c9a3e8', '#7aa88a', '#a86a7a'], park: '#4a6a5a', tree: '#7dffb0', forest: '#2a2236', forestDark: '#1a1424', water: '#3a6a8a', waterDark: '#2a4a6a', label: '#f2ead8' }
+};
+const TOWN_MAPS = [
+  { id: 1, name: 'ねこだまり町', sub: '基地のまわりの住宅街と、その地下の下水道', eps: [1, 2], seed: 11, pal: 'day',
+    zone: (x, y) => (x < 0.28 && y < 0.38 ? 'forest' : (x > 0.36 && x < 0.52 && y > 0.12 && y < 0.3) ? 'park' : 'houses'),
+    rivers: [[[0.8, -0.05], [0.78, 0.4], [0.82, 0.7], [0.8, 1.05]]], bridges: [[0.78, 0.45], [0.81, 0.82]],
+    marks: [[0.4, 0.42, 'ねこだまり基地', 'base'], [0.18, 0.58, '路地裏', 'alley', 1], [0.92, 0.6, '下水道入口', 'manhole', 's2'], [0.6, 0.84, '地下水路', 'manhole', 2], [0.44, 0.2, 'ねこの広場', 'plaza', 's1'], [0.13, 0.13, 'しっぽ山', '']] },
+  { id: 2, name: 'にぎわい通り', sub: '夜の商店街と、となりの大きな公園', eps: [3, 4], seed: 23, pal: 'night',
+    zone: (x, y) => ((x - 0.72) ** 2 + (y - 0.3) ** 2 < 0.07 ? 'park' : y < 0.12 && x < 0.5 ? 'forest' : (Math.abs((x - y) - 0.02) < 0.09 && y > 0.25) ? 'shops' : (x > 0.18 && x < 0.4 && y > 0.68) ? 'market' : 'houses'),
+    rivers: [], ponds: [[0.76, 0.28, 0.07]],
+    marks: [[0.5, 0.52, 'にぎわい商店街', 'shop', 3], [0.28, 0.8, '市場', 'shop'], [0.64, 0.2, '夜の公園', 'plaza', 4], [0.86, 0.42, '雑木林', ''], [0.12, 0.42, '駅前', 'station']] },
+  { id: 3, name: 'みなと地区', sub: '港・屋根の上・廃線・ゴミ山がある町はずれ', eps: [5, 6, 7, 8], seed: 37, pal: 'night',
+    zone: (x, y) => (x < 0.3 && y < 0.3 ? 'forest' : (x > 0.52 && y > 0.45) ? 'warehouse' : (x < 0.32 && y > 0.66) ? 'dump' : 'houses'),
+    sea: [0.74, 0, 1, 1], rivers: [], rails: [[[0.02, 0.2], [0.3, 0.32], [0.55, 0.36], [0.74, 0.36]]], tunnel: [0.06, 0.22],
+    piers: [[0.74, 0.55, 0.12], [0.74, 0.72, 0.16], [0.74, 0.88, 0.1]],
+    marks: [[0.86, 0.66, '波止場', ''], [0.62, 0.6, '港の倉庫', 'warehouse', 5], [0.46, 0.18, '時計塔', 'clock', 6], [0.16, 0.26, '廃線トンネル', 'tunnel', 7], [0.36, 0.46, '廃駅', 'station'], [0.18, 0.82, 'ゴミ山', 'dump', 8]] },
+  { id: 4, name: '地下の国', sub: 'ゴミ山の要塞の地下に広がるネズミの国', eps: [9, 10], seed: 53, pal: 'under',
+    zone: (x, y) => ((x - 0.55) ** 2 + (y - 0.2) ** 2 < 0.035 ? 'palace' : ((x - 0.3) ** 2 + (y - 0.6) ** 2 < 0.05 || (x - 0.75) ** 2 + (y - 0.65) ** 2 < 0.03) ? 'none' : 'rock'),
+    rivers: [[[0.0, 0.85], [0.4, 0.92], [1, 0.8]]], bridges: [[0.5, 0.9]],
+    marks: [[0.3, 0.6, '古い地下道', 'cave', 9], [0.75, 0.66, '迷宮の奥', 'cave'], [0.55, 0.2, 'ネズミ大王の城', 'palace', 10], [0.14, 0.92, '地下の川', '']] }
+];
+for (const M of TOWN_MAPS) { M.pins = {}; for (const mk of M.marks) if (mk[4] != null) M.pins[mk[4]] = [mk[0], mk[1]]; }
+const mapOfEp = (n) => TOWN_MAPS.find((m) => m.eps.includes(n));
+const mapCache = {};
+function drawTownMap(M) {
+  if (mapCache[M.id]) return mapCache[M.id];
+  const W = 1000, cv = document.createElement('canvas'); cv.width = cv.height = W;
+  const g = cv.getContext('2d'), P = TOWN_PAL[M.pal], rnd = seeded(M.seed);
+  g.fillStyle = P.road; g.fillRect(0, 0, W, W);
+  // 町のブロック（道の間）
+  const lines = (s) => { const a = [0]; let v = 0; while (v < W) { v += 95 + s() * 75; a.push(Math.min(W, v)); } return a; };
+  const xs = lines(rnd), ys = lines(rnd), R = 13;
+  const rr = (x, y, w, h, r) => { g.beginPath(); g.moveTo(x + r, y); g.arcTo(x + w, y, x + w, y + h, r); g.arcTo(x + w, y + h, x, y + h, r); g.arcTo(x, y + h, x, y, r); g.arcTo(x, y, x + w, y, r); g.closePath(); };
+  for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
+    const x0 = xs[i] + R, y0 = ys[j] + R, w = xs[i + 1] - xs[i] - R * 2, h = ys[j + 1] - ys[j] - R * 2;
+    if (w < 20 || h < 20) continue;
+    const kind = M.zone((x0 + w / 2) / W, (y0 + h / 2) / W);
+    drawBlock(g, P, kind, x0, y0, w, h, rnd, rr);
+  }
+  // 大通り（ななめ）
+  if (M.id === 2) { g.strokeStyle = P.road; g.lineWidth = 40; g.beginPath(); g.moveTo(180, 230); g.lineTo(980, 1000); g.stroke(); }
+  // 海（道ごとおおう）
+  if (M.sea) { const [a, b, c, d] = M.sea; g.fillStyle = P.waterDark; g.fillRect(a * W - 8, b * W, (c - a) * W + 8, (d - b) * W); g.fillStyle = P.water; g.fillRect(a * W, b * W, (c - a) * W, (d - b) * W);
+    g.strokeStyle = 'rgba(255,255,255,.4)'; g.lineWidth = 3; for (let k = 0; k < 60; k++) { const cx = (a + rnd() * (c - a)) * W, cy = (b + rnd() * (d - b)) * W; g.beginPath(); g.arc(cx, cy, 12, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } }
+  // 川・池
+  for (const rv of M.rivers || []) {
+    for (const [lw, c] of [[92, P.waterDark], [80, P.water]]) { g.strokeStyle = c; g.lineWidth = lw; g.lineCap = 'round'; g.beginPath(); rv.forEach(([x, y], k) => (k ? g.lineTo(x * W, y * W) : g.moveTo(x * W, y * W))); g.stroke(); }
+  }
+  for (const [x, y, r] of M.ponds || []) { g.fillStyle = P.waterDark; g.beginPath(); g.ellipse(x * W, y * W, r * W + 6, r * W * 0.7 + 6, 0, 0, 7); g.fill(); g.fillStyle = P.water; g.beginPath(); g.ellipse(x * W, y * W, r * W, r * W * 0.7, 0, 0, 7); g.fill(); }
+  for (const [x, y] of M.bridges || []) { g.fillStyle = P.road; g.fillRect(x * W - 60, y * W - 14, 120, 28); g.strokeStyle = P.edge; g.lineWidth = 3; g.strokeRect(x * W - 60, y * W - 14, 120, 28); }
+  // 波止場の桟橋
+  for (const [x, y, l] of M.piers || []) { g.fillStyle = '#b8905a'; g.fillRect(x * W - 20, y * W - 12, l * W + 20, 24); g.strokeStyle = '#7a5a34'; g.lineWidth = 3; g.strokeRect(x * W, y * W - 12, l * W, 24); }
+  // 線路（廃線）
+  for (const rl of M.rails || []) {
+    g.strokeStyle = '#6a5a4a'; g.lineWidth = 18; g.lineCap = 'butt'; g.beginPath(); rl.forEach(([x, y], k) => (k ? g.lineTo(x * W, y * W) : g.moveTo(x * W, y * W))); g.stroke();
+    g.strokeStyle = '#3a2e28'; g.lineWidth = 3; g.setLineDash([4, 10]); g.lineWidth = 16; g.stroke(); g.setLineDash([]);
+  }
+  if (M.tunnel) { const [x, y] = M.tunnel; g.fillStyle = '#5a4a3a'; g.beginPath(); g.arc(x * W, y * W, 34, Math.PI, 0); g.fill(); g.fillStyle = '#100c14'; g.beginPath(); g.arc(x * W, y * W + 4, 22, Math.PI, 0); g.fill(); }
+  // 目印と名前
+  for (const [x, y, label, icon] of M.marks) {
+    if (icon) drawMark(g, icon, x * W, y * W);
+    g.font = '800 26px "M PLUS Rounded 1c", sans-serif'; g.textAlign = 'center'; g.textBaseline = 'middle';
+    const tw = g.measureText(label).width;
+    const ly = y * W + (icon ? 44 : 22);
+    g.fillStyle = 'rgba(255,255,255,.9)'; rr(x * W - tw / 2 - 10, ly - 18, tw + 20, 36, 10); g.fill();
+    g.strokeStyle = 'rgba(29,24,52,.4)'; g.lineWidth = 2; g.stroke();
+    g.fillStyle = '#1d1834'; g.fillText(label, x * W, ly + 1);
+  }
+  mapCache[M.id] = cv.toDataURL('image/png');
+  return mapCache[M.id];
+}
+function drawBlock(g, P, kind, x, y, w, h, rnd, rr) {
+  const tree = (cx, cy, r, c1, c2) => { g.fillStyle = c2; g.beginPath(); g.arc(cx + 2, cy + 3, r, 0, 7); g.fill(); g.fillStyle = c1; g.beginPath(); g.arc(cx, cy, r, 0, 7); g.fill(); };
+  if (kind === 'none') return;
+  if (kind === 'forest' || kind === 'rock') {
+    g.fillStyle = kind === 'rock' ? P.forest : P.forest; rr(x - 8, y - 8, w + 16, h + 16, 18); g.fill();
+    for (let k = 0; k < w * h / 500; k++) tree(x + rnd() * w, y + rnd() * h, 10 + rnd() * 10, kind === 'rock' ? '#3a2e4a' : P.tree, P.forestDark);
+    if (kind === 'rock') for (let k = 0; k < 3; k++) { g.fillStyle = P.tree; g.globalAlpha = 0.7; g.beginPath(); g.arc(x + rnd() * w, y + rnd() * h, 4, 0, 7); g.fill(); g.globalAlpha = 1; }
+    return;
+  }
+  g.fillStyle = kind === 'park' ? P.park : kind === 'water' ? P.water : kind === 'dump' ? '#9a8058' : kind === 'palace' ? '#5a3a6a' : P.block;
+  rr(x, y, w, h, 12); g.fill();
+  g.strokeStyle = P.edge; g.lineWidth = 3; g.stroke();
+  if (kind === 'water') { g.strokeStyle = 'rgba(255,255,255,.35)'; g.lineWidth = 3; for (let k = 0; k < w * h / 2500; k++) { const cx = x + rnd() * w, cy = y + rnd() * h; g.beginPath(); g.arc(cx, cy, 10, Math.PI * 1.1, Math.PI * 1.9); g.stroke(); } return; }
+  if (kind === 'park') { for (let k = 0; k < w * h / 900; k++) tree(x + 10 + rnd() * (w - 20), y + 10 + rnd() * (h - 20), 8 + rnd() * 6, P.tree, '#3f8a46'); g.strokeStyle = P.road; g.lineWidth = 8; g.beginPath(); g.moveTo(x + 8, y + h / 2); g.quadraticCurveTo(x + w / 2, y + h * 0.2, x + w - 8, y + h / 2); g.stroke(); return; }
+  if (kind === 'dump') { for (let k = 0; k < w * h / 300; k++) { g.fillStyle = ['#6a5a40', '#5f7a8a', '#a07444', '#3a3348'][k % 4]; g.fillRect(x + rnd() * (w - 12), y + rnd() * (h - 12), 8 + rnd() * 12, 6 + rnd() * 10); } return; }
+  if (kind === 'palace') { g.fillStyle = '#c9a35a'; g.fillRect(x + w * 0.2, y + h * 0.3, w * 0.6, h * 0.5); g.fillStyle = '#ffd36b'; for (let k = 0; k < 3; k++) g.fillRect(x + w * (0.25 + k * 0.22), y + h * 0.15, w * 0.08, h * 0.2); return; }
+  if (kind === 'warehouse') { const n = Math.max(1, Math.floor(w / 60)); for (let k = 0; k < n; k++) { const bw = (w - 12) / n - 8; g.fillStyle = ['#8a8f9a', '#a05a4a', '#5a7aa0'][k % 3]; g.fillRect(x + 8 + k * (bw + 8), y + 8, bw, h - 16); g.strokeStyle = 'rgba(0,0,0,.25)'; g.lineWidth = 2; for (let l = 8; l < h - 16; l += 10) { g.beginPath(); g.moveTo(x + 8 + k * (bw + 8), y + 8 + l); g.lineTo(x + 8 + k * (bw + 8) + bw, y + 8 + l); g.stroke(); } } return; }
+  // 家・お店：小さな屋根を並べる
+  const s = kind === 'shops' || kind === 'market' ? 30 : 34;
+  for (let yy = y + 7; yy + s <= y + h - 4; yy += s + 6) for (let xx = x + 7; xx + s <= x + w - 4; xx += s + 6) {
+    if (kind === 'houses' && rnd() < 0.12) { tree(xx + s / 2, yy + s / 2, 9, P.tree, '#3f8a46'); continue; }
+    g.fillStyle = 'rgba(0,0,0,.18)'; g.fillRect(xx + 3, yy + 4, s, s);
+    if (kind === 'shops' || kind === 'market') {
+      const c = P.roofs[Math.floor(rnd() * P.roofs.length)];
+      for (let k = 0; k < 4; k++) { g.fillStyle = k % 2 ? '#fff6e0' : c; g.fillRect(xx + k * s / 4, yy, s / 4, s); }
+    } else {
+      g.fillStyle = P.roofs[Math.floor(rnd() * P.roofs.length)]; g.fillRect(xx, yy, s, s);
+      g.fillStyle = 'rgba(0,0,0,.15)'; g.fillRect(xx + s / 2, yy, s / 2, s);
+    }
+  }
+}
+function drawMark(g, icon, x, y) {
+  g.save(); g.translate(x, y);
+  g.fillStyle = 'rgba(0,0,0,.25)'; g.beginPath(); g.ellipse(4, 22, 34, 10, 0, 0, 7); g.fill();
+  const body = (c, w, h) => { g.fillStyle = c; g.fillRect(-w / 2, -h + 20, w, h); g.strokeStyle = '#1d1834'; g.lineWidth = 3; g.strokeRect(-w / 2, -h + 20, w, h); };
+  if (icon === 'base') { body('#c4955c', 60, 40); g.fillStyle = '#ffb547'; g.beginPath(); g.moveTo(-38, -20); g.lineTo(0, -46); g.lineTo(38, -20); g.closePath(); g.fill(); g.stroke(); g.fillStyle = '#1d1834'; g.beginPath(); g.arc(0, 20, 10, Math.PI, 0); g.fill(); }
+  if (icon === 'alley') { body('#6a5a88', 22, 46); g.translate(26, 0); body('#5b4a86', 22, 36); g.translate(-26, 0); g.fillStyle = '#5f7a8a'; g.fillRect(-36, 6, 12, 14); }
+  if (icon === 'plaza') { g.fillStyle = '#8fcf6a'; g.beginPath(); g.ellipse(0, 6, 30, 16, 0, 0, 7); g.fill(); g.strokeStyle = '#1d1834'; g.lineWidth = 3; g.stroke(); g.fillStyle = '#5aa846'; g.beginPath(); g.arc(-10, -4, 12, 0, 7); g.fill(); g.stroke(); g.fillStyle = '#6ec6ea'; g.beginPath(); g.ellipse(12, 8, 10, 6, 0, 0, 7); g.fill(); }
+  if (icon === 'cave') { g.fillStyle = '#4a3e5a'; g.beginPath(); g.moveTo(-36, 20); g.quadraticCurveTo(-30, -26, 0, -28); g.quadraticCurveTo(30, -26, 36, 20); g.closePath(); g.fill(); g.strokeStyle = '#0d0a1a'; g.lineWidth = 3; g.stroke(); g.fillStyle = '#0d0a1a'; g.beginPath(); g.arc(0, 20, 16, Math.PI, 0); g.fill(); }
+  if (icon === 'manhole') { g.fillStyle = '#5a5f6a'; g.beginPath(); g.arc(0, 4, 22, 0, 7); g.fill(); g.strokeStyle = '#1d1834'; g.lineWidth = 3; g.stroke(); g.strokeStyle = '#8a8f9a'; for (let k = -12; k <= 12; k += 8) { g.beginPath(); g.moveTo(-16, 4 + k); g.lineTo(16, 4 + k); g.stroke(); } }
+  if (icon === 'shop') { body('#e8d8b8', 64, 34); for (let k = 0; k < 6; k++) { g.fillStyle = k % 2 ? '#fff' : '#d9553b'; g.fillRect(-36 + k * 12, -22, 12, 16); } }
+  if (icon === 'station') { body('#8a8fa0', 70, 32); g.fillStyle = '#3a3348'; g.fillRect(-40, -18, 80, 8); }
+  if (icon === 'warehouse') { body('#a05a4a', 70, 40); g.fillStyle = '#7a3a2a'; g.fillRect(-14, -2, 28, 22); }
+  if (icon === 'clock') { body('#8a7a5a', 30, 70); g.fillStyle = '#fff3c4'; g.beginPath(); g.arc(0, -30, 11, 0, 7); g.fill(); g.stroke(); }
+  if (icon === 'tunnel' || icon === 'dump') { g.fillStyle = icon === 'dump' ? '#7a6a50' : '#5a4a3a'; g.beginPath(); g.moveTo(-40, 20); g.lineTo(-10, -26); g.lineTo(18, -10); g.lineTo(40, 20); g.closePath(); g.fill(); g.strokeStyle = '#1d1834'; g.lineWidth = 3; g.stroke(); }
+  if (icon === 'palace') { body('#5a3a6a', 80, 46); for (const k of [-30, 0, 30]) { g.fillStyle = '#ffd36b'; g.fillRect(k - 8, -40, 16, 18); g.strokeRect(k - 8, -40, 16, 18); } }
+  g.restore();
+}
+function townMissions(M) {
+  const list = [];
+  for (const n of M.eps) list.push({ m: MISSIONS.find((x) => x.type === 'main' && x.ep === n), key: n });
+  for (const k in M.pins) if (k[0] === 's') list.push({ m: MISSIONS.find((x) => x.id === k), key: k });
+  return list.filter((o) => o.m);
+}
 function renderMission() {
-  const mains = MISSIONS.filter((m) => m.type === 'main'), minis = MISSIONS.filter((m) => m.type === 'mini');
-  const X = (i) => 14 + i * 170, MT = 14, mainCy = MT + 48;
-  const node = (m, i, left, top) => {
-    const open = m.open(), done = m.done();
-    const tag = !open ? '' : done ? '<span class="ntag done">クリア</span>' : m.play ? '<span class="ntag new">NEW!!</span>' : '<span class="ntag soon">準備中</span>';
-    const label = m.type === 'main' ? `第${m.ep}話` : 'ミニ';
-    return `<button class="mnode ${m.type} ${open ? '' : 'locked'}" data-a="mission" data-i="${MISSIONS.indexOf(m)}" ${open ? '' : 'disabled'} style="left:${left}px;top:${top}px">
-      ${tag}<span class="mball">${label}</span><span class="mlabel">${open ? esc(m.title) : '？？？'}</span></button>`;
-  };
-  let roads = `<div class="mroad h" style="left:${X(0) + 76}px;top:${mainCy - 6}px;width:${(mains.length - 1) * 170}px"></div>`;
-  let nodes = mains.map((m, i) => node(m, i, X(i), MT)).join('');
-  let maxDepth = 0;
-  mains.forEach((m, i) => {
-    const kids = minis.filter((k) => k.parent === m.ep);
-    if (!kids.length) return;
-    maxDepth = Math.max(maxDepth, kids.length);
-    const lastCy = 160 + (kids.length - 1) * 130 + 48;
-    roads += `<div class="mroad v" style="left:${X(i) + 70}px;top:${mainCy}px;height:${lastCy - mainCy}px"></div>`;
-    kids.forEach((k, j) => { nodes += node(k, j, X(i), 160 + j * 130); });
-  });
-  const W = X(mains.length) + 10, H = 160 + maxDepth * 130 + 10;
-  $('#scrR').innerHTML = `<div class="mhead"><b>ストーリー</b><span class="chip">メインは右へ、ミニストーリーは下へ</span></div>
-    <div class="mtrack"><div class="mcanvas" style="width:${W}px;height:${H}px">${roads}${nodes}</div></div>
-    <p class="hint">ミッションを選ぶと、くわしい内容を確認して出動できます。上下左右にスライドして見られます。</p>`;
-  const cur = mains.findIndex((m) => m.open() && !m.done());
-  if (cur > 1) $('#scrR .mtrack').scrollLeft = X(cur) - 180;
+  const unlocked = (M) => isCleared(M.eps[0] - 1) || M.eps[0] === 1;
+  if (SCR.map == null) { const cur = MISSIONS.find((m) => m.type === 'main' && m.open() && !m.done()) || MISSIONS[0]; SCR.map = TOWN_MAPS.indexOf(mapOfEp(cur.ep || 1)); }
+  const M = TOWN_MAPS[SCR.map], open = unlocked(M), items = townMissions(M);
+  const pins = items.map(({ m, key }) => {
+    const [x, y] = M.pins[key], o = m.open(), d = m.done();
+    return `<button class="pin ${m.type} ${o ? '' : 'locked'} ${d ? 'done' : ''} ${o && !d && m.play ? 'new' : ''}" data-a="mission" data-i="${MISSIONS.indexOf(m)}" ${o ? '' : 'disabled'} style="left:${x * 100}%;top:${y * 100}%" aria-label="${o ? esc(m.title) : '未開放'}">
+      <span class="pinhead"><b>${m.type === 'main' ? m.ep : 'ミ'}</b></span>${o && !d && m.play ? '<span class="pinnew">NEW</span>' : ''}</button>`;
+  }).join('');
+  const route = M.eps.map((n) => M.pins[n]).map(([x, y]) => `${x * 100},${y * 100}`).join(' ');
+  const rows = items.map(({ m }) => {
+    const o = m.open(), d = m.done();
+    return `<button class="mrow ${o ? '' : 'locked'}" data-a="mission" data-i="${MISSIONS.indexOf(m)}" ${o ? '' : 'disabled'}>
+      <span class="mtag ${m.type}">${m.type === 'main' ? '第' + m.ep + '話' : 'ミニ'}</span>
+      <span class="mtx"><b>${o ? esc(m.title) : '？？？'}</b><small>${o ? esc(m.place) : '前のお話をクリアすると開きます'}</small></span>
+      <span class="mst">${d ? '<i class="ok">クリア</i>' : o ? (m.play ? '<i class="nw">NEW</i>' : '<i>準備中</i>') : ''}</span></button>`;
+  }).join('');
+  $('#scrR').innerHTML = `<div class="mapgrid">
+    <div class="mapview ${open ? '' : 'sealed'}">
+      <img src="${drawTownMap(M)}" alt="${esc(M.name)}の地図" draggable="false">
+      ${open ? `<svg class="route" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true"><polyline points="${route}"/></svg>` : ''}
+      ${open ? pins : `<div class="seal"><b>🔒 ${esc(M.name)}</b><span>第${M.eps[0] - 1}話をクリアすると行けるようになります</span></div>`}
+    </div>
+    <div class="mapside">
+      <div class="mapnav"><button class="btn ghost nb" data-a="mapprev" aria-label="前のマップ">◀</button>
+        <div class="mapname"><small>マップ ${SCR.map + 1} / ${TOWN_MAPS.length}</small><b>${esc(M.name)}</b></div>
+        <button class="btn ghost nb" data-a="mapnext" aria-label="次のマップ">▶</button></div>
+      <p class="mapsub">${esc(M.sub)}</p>
+      <div class="mlist">${rows}</div>
+    </div></div>`;
   if (SCR.mission) renderMissionPop();
 }
+
 function renderMissionPop() {
   const m = SCR.mission;
   const pop = $('#scrPop'); pop.hidden = false;
@@ -2049,6 +2227,8 @@ $('#scr').addEventListener('click', (e) => {
     if (state.nibosi < it.price || (state.items[it.id] || 0) >= it.max) return;
     state.nibosi -= it.price; state.items[it.id] = (state.items[it.id] || 0) + 1; save(); refreshHud();
     toast(`${it.name}を準備した（次の出撃で使われます）`);
+  } else if (a === 'mapprev' || a === 'mapnext') {
+    SCR.map = (SCR.map + (a === 'mapprev' ? -1 : 1) + TOWN_MAPS.length) % TOWN_MAPS.length;
   } else if (a === 'mission') {
     SCR.mission = MISSIONS[+b.dataset.i];
   } else if (a === 'closepop') {
@@ -4230,6 +4410,11 @@ function drawStageMap() {
   for (const d of S.drops) { mctx.beginPath(); mctx.arc(X(d.x), Z(d.z), 3, 0, Math.PI * 2); mctx.fill(); }
   mctx.fillStyle = '#ff6a4d';
   for (const e of S.enemies) if (e.state !== 'dead' && e.state !== 'idle') { mctx.beginPath(); mctx.arc(X(e.x), Z(e.z), 4, 0, Math.PI * 2); mctx.fill(); }
+  // 目的地のピン（ボスの広場か、次のエリアへのトンネル）
+  { const D = AREA_DEF[S.area], gp = ARENA ? [ARENA.x, ARENA.z] : D.tunnelFrom ? [D.path[D.tunnelFrom].x, D.path[D.tunnelFrom].z] : null;
+    if (gp) { const px = X(gp[0]), pz = Z(gp[1]) - 10; mctx.fillStyle = '#ff3b6b'; mctx.strokeStyle = '#0d0a1a'; mctx.lineWidth = 3;
+      mctx.beginPath(); mctx.arc(px, pz - 8, 10, Math.PI * 0.85, Math.PI * 0.15); mctx.lineTo(px, pz + 10); mctx.closePath(); mctx.fill(); mctx.stroke();
+      mctx.fillStyle = '#fff'; mctx.beginPath(); mctx.arc(px, pz - 8, 4, 0, 7); mctx.fill(); } }
   if (S.boss && S.boss.state !== 'dead') {
     mctx.fillStyle = '#ff3b3b'; mctx.strokeStyle = '#0d0a1a'; mctx.lineWidth = 3;
     mctx.beginPath(); mctx.arc(X(S.boss.x), Z(S.boss.z), 9, 0, Math.PI * 2); mctx.fill(); mctx.stroke();
